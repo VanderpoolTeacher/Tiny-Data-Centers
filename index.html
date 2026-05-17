@@ -15,6 +15,10 @@
     --text-faint: #8a99b5;
     --accent: #5ea3ff;
     --accent-dim: #2a4a7a;
+    --highlight: #34d399;
+    --highlight-dim: #1f6b54;
+    --action: #fb923c;
+    --action-bright: #fdba74;
     --success: #4ade80;
     --warning: #fbbf24;
     --danger: #f87171;
@@ -123,6 +127,67 @@
     background: rgba(10, 14, 26, 0.5);
   }
   .key-insight strong { color: var(--accent); font-weight: 500; }
+  /* NW Ohio — anything tagged .nw-ohio gets the mint-green treatment */
+  .key-insight.nw-ohio {
+    background: rgba(52, 211, 153, 0.09);
+    border-left-color: var(--highlight);
+  }
+  .key-insight.nw-ohio::before { content: 'NW OHIO'; color: var(--highlight); border-color: var(--highlight-dim); }
+  .key-insight.nw-ohio strong { color: var(--highlight); }
+  .key-insight.nw-ohio em { color: var(--text); font-style: italic; }
+  .section-tag.nw-ohio { color: var(--highlight); }
+  /* TABLE OF CONTENTS */
+  .toc-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 36px;
+    margin-top: 20px;
+    max-width: 1000px;
+  }
+  .toc-col-title {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 500;
+    color: var(--accent);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .toc-col.nw-ohio .toc-col-title { color: var(--highlight); }
+  .toc-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 2px; }
+  .toc-list li { display: block; }
+  .toc-item {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    border-left: 2px solid transparent;
+    padding: 5px 10px;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1.35;
+    transition: all 0.15s ease;
+    border-radius: 2px;
+  }
+  .toc-item:hover { background: rgba(94, 163, 255, 0.07); color: var(--text); border-left-color: var(--accent); }
+  .toc-col.nw-ohio .toc-item:hover { background: rgba(52, 211, 153, 0.08); border-left-color: var(--highlight); }
+  .toc-num {
+    font-variant-numeric: tabular-nums;
+    color: var(--text-faint);
+    font-size: 11px;
+    min-width: 22px;
+    flex-shrink: 0;
+    letter-spacing: 0.5px;
+  }
+  .toc-col.nw-ohio .toc-num { color: var(--highlight); opacity: 0.75; }
+  .toc-label strong { color: var(--text); font-weight: 500; }
+  .toc-col.nw-ohio .toc-label strong { color: var(--highlight); }
   p.beat {
     color: var(--text-faint);
     font-size: 14px;
@@ -152,11 +217,11 @@
   }
   .nav button {
     pointer-events: auto;
-    width: 36px; height: 36px;
+    width: 38px; height: 38px;
     border-radius: 50%;
     background: var(--bg-elev);
-    border: 1px solid var(--border);
-    color: var(--text-dim);
+    border: 2px solid var(--action);
+    color: var(--action);
     cursor: pointer;
     font-size: 16px;
     display: flex;
@@ -164,19 +229,14 @@
     justify-content: center;
     transition: all 0.15s ease;
   }
-  .nav button:hover { background: var(--bg-card); color: var(--text); border-color: var(--accent); }
-  .nav button:disabled { opacity: 0.3; cursor: not-allowed; }
-  .dots { display: flex; gap: 6px; align-items: center; pointer-events: auto; }
-  .dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--text-faint);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border: none;
-    padding: 0;
+  .nav button:hover {
+    background: var(--action);
+    color: var(--bg);
+    border-color: var(--action-bright);
+    box-shadow: 0 0 12px rgba(251, 146, 60, 0.35);
   }
-  .dot.active { background: var(--accent); width: 18px; border-radius: 3px; }
+  .nav button:disabled { opacity: 0.3; cursor: not-allowed; }
+  .nav button:disabled:hover { background: var(--bg-elev); color: var(--action); border-color: var(--action); box-shadow: none; }
   .counter {
     position: fixed;
     top: 24px; right: 32px;
@@ -209,7 +269,7 @@
   .brand span { color: var(--accent); }
   .kbd-hint {
     position: fixed;
-    bottom: 24px; right: 32px;
+    bottom: 28px; left: 32px;
     color: var(--text-faint);
     font-size: 11px;
     z-index: 100;
@@ -584,6 +644,128 @@
   }
   .econ-legend-item { display: flex; align-items: center; gap: 6px; }
   .econ-swatch { width: 12px; height: 12px; border-radius: 3px; }
+  /* Cost-floor breakdown — full numeric detail for each scenario, always visible */
+  .cost-breakdown { margin-top: 22px; display: flex; flex-direction: column; gap: 10px; max-width: 1000px; }
+  .cost-bd-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    padding: 10px 0;
+    border-top: 1px solid var(--border);
+  }
+  .cost-bd-row .bd-label {
+    font-size: 12px;
+    color: var(--text-dim);
+    min-width: 180px;
+    line-height: 1.35;
+  }
+  .cost-bd-row .bd-label strong { color: var(--text); font-weight: 500; display: block; font-size: 13px; }
+  .cost-bd-row .bd-label .bd-total {
+    color: var(--accent);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  .bd-chips { display: flex; flex-wrap: wrap; gap: 8px; flex: 1; }
+  .bd-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    position: relative;
+    cursor: help;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .bd-chip:hover { background: rgba(94,163,255,0.10); border-color: var(--accent); }
+  .bd-sw { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .bd-sw.power { background: #1e3a66; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); }
+  .bd-sw.net { background: #274a7d; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); }
+  .bd-sw.ops { background: #345a90; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); }
+  .bd-sw.capex { background: #406aa0; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); }
+  .bd-name { color: var(--text-dim); }
+  .bd-val { color: var(--text); font-weight: 500; }
+  .bd-chip .callout { width: 290px; }
+  /* Target revenue stat — visual anchor for the $200K/node/yr number */
+  .target-rev {
+    margin-top: 22px;
+    padding: 22px 28px;
+    background: linear-gradient(135deg, rgba(74, 222, 128, 0.08), rgba(74, 222, 128, 0.02));
+    border: 1px solid rgba(74, 222, 128, 0.3);
+    border-radius: 8px;
+    display: grid;
+    grid-template-columns: minmax(220px, auto) 1fr;
+    gap: 28px;
+    align-items: center;
+    max-width: 1000px;
+  }
+  .target-rev-stat { display: flex; flex-direction: column; }
+  .target-rev-label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--success);
+    font-weight: 500;
+  }
+  .target-rev-value {
+    font-size: 52px;
+    color: var(--success);
+    font-weight: 300;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -1.5px;
+    margin-top: 8px;
+  }
+  .target-rev-unit { font-size: 13px; color: var(--text-faint); margin-top: 6px; }
+  .target-rev-caption {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.6;
+    border-left: 2px solid rgba(74, 222, 128, 0.35);
+    padding-left: 18px;
+  }
+  .target-rev-caption strong { color: var(--text); font-weight: 500; }
+  .target-rev-caption .hl-rev { color: var(--success); font-weight: 500; }
+  @media (max-width: 720px) {
+    .target-rev { grid-template-columns: 1fr; gap: 16px; padding: 18px; }
+    .target-rev-value { font-size: 40px; }
+  }
+  /* Simple closing — three cards distilling the NW Ohio opportunity */
+  .simple-closing {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin: 28px 0 10px;
+    max-width: 1100px;
+  }
+  .sc-card {
+    background: rgba(52, 211, 153, 0.05);
+    border: 1px solid rgba(52, 211, 153, 0.28);
+    border-radius: 8px;
+    padding: 22px 24px 26px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .sc-num {
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--highlight);
+    font-weight: 500;
+  }
+  .sc-head {
+    font-size: 22px;
+    font-weight: 300;
+    color: var(--text);
+    letter-spacing: -0.3px;
+    line-height: 1.2;
+  }
+  .sc-body { font-size: 14px; color: var(--text-dim); line-height: 1.55; }
+  @media (max-width: 900px) { .simple-closing { grid-template-columns: 1fr; } }
   /* Horizontal stacked-bar chart (slide 6) — shared $0–$220K x-axis */
   .hbar-chart {
     display: grid;
@@ -1171,23 +1353,65 @@
 </head>
 <body>
 <div class="brand">SPAN <span>XFRA</span> · Strict analysis</div>
-<div class="counter"><strong id="cur">1</strong> / <span id="tot">13</span></div>
+<div class="counter"><strong id="cur">1</strong> / <span id="tot">21</span></div>
 
 <div class="deck" id="deck">
 
   <!-- 1: TITLE -->
   <section class="slide active" data-slide="1">
     <div class="slide-inner" style="max-width: 900px;">
-      <div class="eyebrow">Strict analytical report</div>
-      <h1 class="title">Span <em>XFRA</em><br/>A distributed AI data center<br/>on the side of a house.</h1>
-      <p class="lead">Span just announced a plan to put a 16-GPU AI inference pod on the side of <strong>80,000 American homes</strong>. <strong>The hardware is real.</strong> The economics are not yet proven.</p>
+      <div class="eyebrow">Strict analytical report <span style="color: var(--highlight);">· Northwest Ohio opportunity</span></div>
+      <h1 class="title">Span <em>XFRA</em><br/>A distributed AI data center<br/>in the backyard.</h1>
+      <p class="lead">Span just announced a plan to put a 16-GPU AI inference pod — HVAC-sized, sitting on a concrete pad in the side yard — at <strong>80,000 American homes</strong>. <strong>The hardware is real.</strong> The economics are not yet proven.</p>
       <p class="story">This deck is the <em>strict reading</em> of what the evidence actually supports — across the technical claim, the unit economics, the strategic position, the risk surface, and the opportunities the analysis opens up. We build the argument one slide at a time. By the end, we get to <strong>the three questions that decide the whole bet</strong>.</p>
-      <p class="meta">Prepared 2026-05-16 · 13 slides · ← → to navigate · click any element to pin its detail</p>
+      <div class="key-insight nw-ohio"><span><strong>Northwest Ohio could be inside this footprint.</strong> Cheap PJM/AEP power, dense single-family housing across Toledo, Findlay, Lima and Bowling Green, expanding middle-mile fiber, and a workforce already absorbing data-center jobs from the New Albany corridor — the region has the inputs an 80,000-home distributed buildout actually needs. <em>The question for NW Ohio isn't whether the wave arrives; it's whether the region is on the host list or the bypass list.</em><br/><br/><strong>What if we used this technology in downtown Toledo?</strong></span></div>
+      <p class="meta">Prepared 2026-05-16 · 21 slides · ← → to navigate · click any element to pin its detail</p>
     </div>
   </section>
 
-  <!-- 2: 7-QUESTION PATHWAY (click-through story) -->
+  <!-- 2: TABLE OF CONTENTS -->
   <section class="slide" data-slide="2">
+    <div class="slide-inner">
+      <div class="section-tag">Contents</div>
+      <h2>Where this deck goes.</h2>
+      <p class="lead">Twenty-one slides in two arcs — first the <strong>strict analysis</strong> of Span XFRA, then the <strong style="color: var(--highlight);">Northwest Ohio opportunity</strong> that analysis opens up.</p>
+      <div class="toc-grid">
+        <div class="toc-col">
+          <div class="toc-col-title">Strict analysis · slides 3–15</div>
+          <ul class="toc-list">
+            <li><button class="toc-item" data-go="2"><span class="toc-num">03</span><span class="toc-label">Executive summary — <strong>the answer first.</strong></span></button></li>
+            <li><button class="toc-item" data-go="3"><span class="toc-num">04</span><span class="toc-label">Technical viability — <strong>start with the thing itself.</strong></span></button></li>
+            <li><button class="toc-item" data-go="4"><span class="toc-num">05</span><span class="toc-label">Technical viability — <strong>the orchestrator is the unknown.</strong></span></button></li>
+            <li><button class="toc-item" data-go="5"><span class="toc-num">06</span><span class="toc-label">Business viability — <strong>four numbers per node.</strong></span></button></li>
+            <li><button class="toc-item" data-go="6"><span class="toc-num">07</span><span class="toc-label">Unit economics — <strong>cost floor varies by market.</strong></span></button></li>
+            <li><button class="toc-item" data-go="7"><span class="toc-num">08</span><span class="toc-label">Strategic positioning — <strong>the moat is a combination.</strong></span></button></li>
+            <li><button class="toc-item" data-go="8"><span class="toc-num">09</span><span class="toc-label">Competitive durability — <strong>a queue is forming.</strong></span></button></li>
+            <li><button class="toc-item" data-go="9"><span class="toc-num">10</span><span class="toc-label">Risk inventory — <strong>not the ones in the press.</strong></span></button></li>
+            <li><button class="toc-item" data-go="10"><span class="toc-num">11</span><span class="toc-label">Adjacencies 1 — <strong>things Span could ship in 2027.</strong></span></button></li>
+            <li><button class="toc-item" data-go="11"><span class="toc-num">12</span><span class="toc-label">Adjacencies 2 — <strong>strategic shifts using the platform.</strong></span></button></li>
+            <li><button class="toc-item" data-go="12"><span class="toc-num">13</span><span class="toc-label">Overall assessment — <strong>strip it away.</strong></span></button></li>
+            <li><button class="toc-item" data-go="13"><span class="toc-num">14</span><span class="toc-label">What we don't know — <strong>the watchlist.</strong></span></button></li>
+            <li><button class="toc-item" data-go="14"><span class="toc-num">15</span><span class="toc-label">In closing — <strong>the bet is reasonable.</strong></span></button></li>
+          </ul>
+        </div>
+        <div class="toc-col nw-ohio">
+          <div class="toc-col-title">Northwest Ohio · concept · slides 16–21</div>
+          <ul class="toc-list">
+            <li><button class="toc-item" data-go="15"><span class="toc-num">16</span><span class="toc-label">A <strong>regional opportunity</strong> worth taking seriously.</span></button></li>
+            <li><button class="toc-item" data-go="16"><span class="toc-num">17</span><span class="toc-label">Build it — <strong>the supply chain is here.</strong></span></button></li>
+            <li><button class="toc-item" data-go="17"><span class="toc-num">18</span><span class="toc-label">Install it — <strong>the trades are here.</strong></span></button></li>
+            <li><button class="toc-item" data-go="18"><span class="toc-num">19</span><span class="toc-label">The use case <strong>fits us better</strong> than the Sun Belt.</span></button></li>
+            <li><button class="toc-item" data-go="19"><span class="toc-num">20</span><span class="toc-label">What a <strong>Toledo pilot</strong> would look like.</span></button></li>
+            <li><button class="toc-item" data-go="20"><span class="toc-num">21</span><span class="toc-label">The simple version — <strong>somebody hosts it.</strong></span></button></li>
+          </ul>
+        </div>
+      </div>
+      <p class="beat">Click any line to jump · or use ← → to walk through.</p>
+    </div>
+  </section>
+
+  <!-- 3: 7-QUESTION PATHWAY (click-through story) -->
+  <section class="slide" data-slide="3">
     <div class="slide-inner">
       <div class="section-tag">Executive summary</div>
       <h2>Before the pieces, the answer.</h2>
@@ -1239,8 +1463,8 @@
     </div>
   </section>
 
-  <!-- 3: HARDWARE -->
-  <section class="slide" data-slide="3">
+  <!-- 4: HARDWARE -->
+  <section class="slide" data-slide="4">
     <div class="slide-inner">
       <div class="section-tag">Technical viability</div>
       <h2>Start with the thing itself.</h2>
@@ -1282,8 +1506,8 @@
     </div>
   </section>
 
-  <!-- 4: TECHNICAL COMPONENTS — risk-colored pathway -->
-  <section class="slide" data-slide="4">
+  <!-- 5: TECHNICAL COMPONENTS — risk-colored pathway -->
+  <section class="slide" data-slide="5">
     <div class="slide-inner">
       <div class="section-tag">Technical viability</div>
       <h2>The integration is solvable. <span class="hl">The orchestrator is the unknown.</span></h2>
@@ -1332,8 +1556,8 @@
     </div>
   </section>
 
-  <!-- 5: BUSINESS — THE EQUATION -->
-  <section class="slide" data-slide="5">
+  <!-- 6: BUSINESS — THE EQUATION -->
+  <section class="slide" data-slide="6">
     <div class="slide-inner">
       <div class="section-tag">Business viability</div>
       <h2>The model reduces to <span class="hl">four numbers</span> per node.</h2>
@@ -1373,107 +1597,51 @@
     </div>
   </section>
 
-  <!-- 6: UNIT ECONOMICS — horizontal stacked bars, shared $0–$220K axis, $150K reference line -->
-  <section class="slide" data-slide="6">
+  <!-- 7: UNIT ECONOMICS — horizontal stacked bars, shared $0–$220K axis, $150K reference line -->
+  <section class="slide" data-slide="7">
     <div class="slide-inner">
       <div class="section-tag">Unit economics — derived</div>
       <h2>Cost floor varies <span class="hl">dramatically</span> by market.</h2>
-      <div class="key-insight"><span>NV/AZ at <strong>$87K cost floor</strong> sits comfortably under the $150K viability line. CA at <strong>$111K</strong> sits much closer to it. The investor-implied <strong>~$200K target revenue</strong> sits above it.</span></div>
-      <p class="story">In the Southwest pilot, <strong>the math has room to clear</strong>. <em>In California — without a tariff carve-out — it doesn't.</em> The blue line at $150K is the floor where this becomes a real business. Costs need to be left of it; revenue needs to be right of it.</p>
+      <div class="key-insight"><span>NV/AZ at <strong>$87K cost floor</strong> sits comfortably under the $150K viability threshold. CA at <strong>$111K</strong> sits much closer. The investor-implied <strong>~$200K target revenue</strong> sits above both.</span></div>
+      <p class="story">In the Southwest pilot, <strong>the math has room to clear</strong>. <em>In California — without a tariff carve-out — it doesn't.</em> <strong>$150K is the floor where this becomes a real business</strong> — costs need to land below it, revenue needs to clear it.</p>
 
-      <div class="hbar-chart">
-        <div class="hbar-labels">
-          <div class="hbar-label">
-            <div class="title">Southwest pilot</div>
-            <div class="sub">NV/AZ · $0.13/kWh</div>
-          </div>
-          <div class="hbar-label">
-            <div class="title">California</div>
-            <div class="sub">$0.30/kWh · no tariff</div>
-          </div>
-          <div class="hbar-label">
-            <div class="title">Target revenue</div>
-            <div class="sub">Investor-implied</div>
+      <div class="cost-breakdown">
+        <div class="cost-bd-row">
+          <div class="bd-label"><strong>Southwest pilot</strong>NV/AZ · <span class="bd-total">$87K total</span></div>
+          <div class="bd-chips">
+            <span class="bd-chip has-callout"><span class="bd-sw power"></span><span class="bd-name">Power</span><span class="bd-val">$17.5K</span><div class="callout"><strong>Power · $17.5K/yr</strong>134,500 kWh × $0.13/kWh NV/AZ residential retail. 19.2 kW continuous at ~80% utilization.</div></span>
+            <span class="bd-chip has-callout"><span class="bd-sw net"></span><span class="bd-name">Internet</span><span class="bd-val">$1K</span><div class="callout"><strong>Internet · $1K/yr</strong>Residential gigabit fiber at ~$80/mo. Span pays the host's bill directly.</div></span>
+            <span class="bd-chip has-callout"><span class="bd-sw ops"></span><span class="bd-name">Ops</span><span class="bd-val">$7.5K</span><div class="callout"><strong>Ops · $7.5K/yr (mid)</strong>Truck rolls + monitoring + insurance + software. Estimated $5–10K range, mid-band shown.</div></span>
+            <span class="bd-chip has-callout"><span class="bd-sw capex"></span><span class="bd-name">Capex amort (5yr)</span><span class="bd-val">$61K</span><div class="callout"><strong>Capex amort · $61K/yr</strong>$310K hardware lower bound ÷ 5-year useful life. Aggressive but standard for GPU depreciation under AI cycle pressure.</div></span>
           </div>
         </div>
-        <div class="hbar-area">
-          <div class="hbar-threshold" style="left: 68.2%;"></div>
-
-          <div class="hbar-track">
-            <div class="hbar" style="width: 39.5%;">
-              <div class="hbar-seg power has-callout" style="width: 20.1%;">
-                <span>$17.5</span>
-                <div class="callout"><strong>Power · $17.5K/yr</strong>134,500 kWh × $0.13/kWh NV/AZ residential retail. 19.2 kW continuous at ~80% util.</div>
-              </div>
-              <div class="hbar-seg net has-callout" style="width: 1.1%;">
-                <div class="callout"><strong>Internet · $1K/yr</strong>Residential gigabit fiber at ~$80/mo. Span pays the host's bill directly.</div>
-              </div>
-              <div class="hbar-seg ops has-callout" style="width: 8.6%;">
-                <span>$7.5</span>
-                <div class="callout"><strong>Ops · $7.5K/yr (mid)</strong>Truck rolls + monitoring + insurance + software. Estimated $5–10K range, mid-band shown.</div>
-              </div>
-              <div class="hbar-seg capex has-callout" style="width: 70.1%;">
-                <span>$61K capex amort</span>
-                <div class="callout"><strong>Capex amort · $61K/yr</strong>$310K hardware lower bound ÷ 5-year useful life. Aggressive but standard for GPU depreciation under AI cycle pressure.</div>
-              </div>
-            </div>
-            <span class="hbar-total">$87K</span>
-          </div>
-
-          <div class="hbar-track">
-            <div class="hbar" style="width: 50.5%;">
-              <div class="hbar-seg power has-callout" style="width: 36.9%;">
-                <span>$41K power</span>
-                <div class="callout"><strong>Power · $41K/yr</strong>134,500 kWh × $0.30/kWh CA residential retail. Power alone consumes ~37% of the cost floor.</div>
-              </div>
-              <div class="hbar-seg net has-callout" style="width: 0.9%;">
-                <div class="callout"><strong>Internet · $1K/yr</strong>Same as pilot — residential gigabit pricing barely varies by state.</div>
-              </div>
-              <div class="hbar-seg ops has-callout" style="width: 7.2%;">
-                <span>$8</span>
-                <div class="callout"><strong>Ops · $8K/yr</strong>Slightly higher than NV/AZ for truck-roll cost in CA labor markets.</div>
-              </div>
-              <div class="hbar-seg capex has-callout" style="width: 55.0%;">
-                <span>$61K capex amort</span>
-                <div class="callout"><strong>Capex amort · $61K/yr</strong>Same hardware, same depreciation schedule. The variable that changed is power cost.</div>
-              </div>
-            </div>
-            <span class="hbar-total">$111K</span>
-          </div>
-
-          <div class="hbar-track">
-            <div class="hbar" style="width: 90.9%;">
-              <div class="hbar-seg revenue has-callout" style="width: 100%;">
-                <span>~$200K · target revenue per node / year</span>
-                <div class="callout"><strong>Back-solved from investor math</strong>Abe Yokell (Congruent Ventures) framed each node as ~$1M asset value (50K nodes ≈ 1 GW × $50B/GW Nvidia benchmark). Over 5 years with growth ≈ $200–250K/yr.</div>
-              </div>
-            </div>
-            <span class="hbar-total">$200K</span>
-          </div>
-
-          <div class="hbar-axis">
-            <span style="left: 0%;">$0</span>
-            <span style="left: 22.7%;">$50K</span>
-            <span style="left: 45.4%;">$100K</span>
-            <span style="left: 68.2%;">$150K</span>
-            <span style="left: 90.9%;">$200K</span>
+        <div class="cost-bd-row">
+          <div class="bd-label"><strong>California</strong>$0.30/kWh, no tariff · <span class="bd-total">$111K total</span></div>
+          <div class="bd-chips">
+            <span class="bd-chip has-callout"><span class="bd-sw power"></span><span class="bd-name">Power</span><span class="bd-val">$41K</span><div class="callout"><strong>Power · $41K/yr</strong>134,500 kWh × $0.30/kWh CA residential retail. Power alone consumes ~37% of the cost floor.</div></span>
+            <span class="bd-chip has-callout"><span class="bd-sw net"></span><span class="bd-name">Internet</span><span class="bd-val">$1K</span><div class="callout"><strong>Internet · $1K/yr</strong>Same as pilot — residential gigabit pricing barely varies by state.</div></span>
+            <span class="bd-chip has-callout"><span class="bd-sw ops"></span><span class="bd-name">Ops</span><span class="bd-val">$8K</span><div class="callout"><strong>Ops · $8K/yr</strong>Slightly higher than NV/AZ for truck-roll cost in CA labor markets.</div></span>
+            <span class="bd-chip has-callout"><span class="bd-sw capex"></span><span class="bd-name">Capex amort (5yr)</span><span class="bd-val">$61K</span><div class="callout"><strong>Capex amort · $61K/yr</strong>Same hardware, same depreciation schedule. The variable that changed is power cost.</div></span>
           </div>
         </div>
       </div>
 
-      <div class="econ-legend">
-        <div class="econ-legend-item"><span class="econ-swatch" style="background: #1e3a66;"></span> Power</div>
-        <div class="econ-legend-item"><span class="econ-swatch" style="background: #274a7d;"></span> Internet</div>
-        <div class="econ-legend-item"><span class="econ-swatch" style="background: #345a90;"></span> Ops</div>
-        <div class="econ-legend-item"><span class="econ-swatch" style="background: #406aa0;"></span> Capex amort (5yr)</div>
-        <div class="econ-legend-item"><span class="econ-swatch" style="background: var(--success);"></span> Revenue target</div>
+      <div class="target-rev">
+        <div class="target-rev-stat">
+          <div class="target-rev-label">Target revenue</div>
+          <div class="target-rev-value">~$200K</div>
+          <div class="target-rev-unit">per node · per year</div>
+        </div>
+        <div class="target-rev-caption">
+          <strong>Back-solved from investor math.</strong> Abe Yokell (Congruent Ventures) framed each node as ~$1M asset value — 50K nodes ≈ 1 GW × $50B/GW Nvidia benchmark. Spread over five years with growth, that lands at <span class="hl-rev">$200–250K/yr</span>. Above the $150K viability floor, well above the Southwest pilot cost — <em>but Span hasn't announced what hyperscalers will actually pay.</em>
+        </div>
       </div>
-      <p class="interact-hint">Hover any segment for the math · click to pin · vertical blue line = $150K minimum viable revenue</p>
+      <p class="interact-hint">Hover any chip above for the math behind each cost line.</p>
     </div>
   </section>
 
-  <!-- 7: MOAT -->
-  <section class="slide" data-slide="7">
+  <!-- 8: MOAT -->
+  <section class="slide" data-slide="8">
     <div class="slide-inner">
       <div class="section-tag">Strategic positioning</div>
       <h2>The moat is a <span class="hl">combination</span>, not any single asset.</h2>
@@ -1520,8 +1688,8 @@
     </div>
   </section>
 
-  <!-- 8: COMPETITORS -->
-  <section class="slide" data-slide="8">
+  <!-- 9: COMPETITORS -->
+  <section class="slide" data-slide="9">
     <div class="slide-inner">
       <div class="section-tag">Competitive durability</div>
       <h2>And there's <span class="hl">a queue forming.</span></h2>
@@ -1557,8 +1725,8 @@
     </div>
   </section>
 
-  <!-- 9: RISKS — press narrative vs. actual exposure -->
-  <section class="slide" data-slide="9">
+  <!-- 10: RISKS — press narrative vs. actual exposure -->
+  <section class="slide" data-slide="10">
     <div class="slide-inner">
       <div class="section-tag">Risk inventory</div>
       <h2>The real risks <span class="hl">aren't the ones in the press.</span></h2>
@@ -1649,8 +1817,8 @@
     </div>
   </section>
 
-  <!-- 10: ADJACENCIES — what Span could ship in 2027 (near-term margin levers) -->
-  <section class="slide" data-slide="10">
+  <!-- 11: ADJACENCIES — what Span could ship in 2027 (near-term margin levers) -->
+  <section class="slide" data-slide="11">
     <div class="slide-inner">
       <div class="section-tag">Adjacencies · part 1 of 2</div>
       <h2>Things Span could ship <span class="hl">in 2027</span>.</h2>
@@ -1682,8 +1850,8 @@
     </div>
   </section>
 
-  <!-- 11: ADJACENCIES — strategic platform shifts (different buyers / geographies / businesses) -->
-  <section class="slide" data-slide="11">
+  <!-- 12: ADJACENCIES — strategic platform shifts (different buyers / geographies / businesses) -->
+  <section class="slide" data-slide="12">
     <div class="slide-inner">
       <div class="section-tag">Adjacencies · part 2 of 2</div>
       <h2>Strategic shifts using <span class="hl">the same platform</span>.</h2>
@@ -1715,8 +1883,8 @@
     </div>
   </section>
 
-  <!-- 12: THREE QUESTIONS -->
-  <section class="slide" data-slide="12">
+  <!-- 13: THREE QUESTIONS -->
+  <section class="slide" data-slide="13">
     <div class="slide-inner">
       <div class="section-tag">Overall assessment</div>
       <h2>Strip everything else away.</h2>
@@ -1740,8 +1908,8 @@
     </div>
   </section>
 
-  <!-- 13: WATCHLIST -->
-  <section class="slide" data-slide="13">
+  <!-- 14: WATCHLIST -->
+  <section class="slide" data-slide="14">
     <div class="slide-inner">
       <div class="section-tag">What we still don't know</div>
       <h2>Watchlist, ranked by <span class="hl">what would move the needle.</span></h2>
@@ -1792,8 +1960,8 @@
     </div>
   </section>
 
-  <!-- 14: CLOSING -->
-  <section class="slide" data-slide="14">
+  <!-- 15: CLOSING -->
+  <section class="slide" data-slide="15">
     <div class="slide-inner">
       <div class="section-tag">In closing</div>
       <h2>The bet is reasonable. The binary risks are public.</h2>
@@ -1812,23 +1980,23 @@
     </div>
   </section>
 
-  <!-- 15: NORTHWEST OHIO — section opener -->
-  <section class="slide" data-slide="15" data-section="Northwest Ohio · concept">
+  <!-- 16: NORTHWEST OHIO — section opener -->
+  <section class="slide" data-slide="16" data-section="Northwest Ohio · concept">
     <div class="slide-inner">
-      <div class="section-tag">Northwest Ohio · concept</div>
+      <div class="section-tag nw-ohio">Northwest Ohio · concept</div>
       <h2>A regional opportunity worth taking <span class="hl">seriously.</span></h2>
-      <div class="key-insight"><span>Northwest Ohio has the <strong>manufacturing base</strong>, the <strong>skilled workforce</strong>, and (with heat reuse) the <strong>climate profile</strong> to turn an XFRA-type product into a regional industrial story — not just a deployment site.</span></div>
+      <div class="key-insight nw-ohio"><span>Northwest Ohio has the <strong>manufacturing base</strong>, the <strong>skilled workforce</strong>, and (with heat reuse) the <strong>climate profile</strong> to turn an XFRA-type product into a regional industrial story — not just a deployment site.</span></div>
       <p class="story">Everything up to this point has been strict analysis. The next four slides shift mode — they ask <em>what an XFRA-style product could mean for Toledo and Northwest Ohio if we wanted to participate, not just observe.</em> Speculative, but concrete enough to act on.</p>
       <p class="beat">Ahead: three regional advantages — we can <strong>build it</strong>, <strong>install it</strong>, and the use case <strong>fits us better</strong> — and then what a Toledo pilot might look like.</p>
     </div>
   </section>
 
-  <!-- 16: BUILD IT — manufacturing & PV supply chain (1 of 3) -->
-  <section class="slide" data-slide="16" data-section="Northwest Ohio · concept">
+  <!-- 17: BUILD IT — manufacturing & PV supply chain (1 of 3) -->
+  <section class="slide" data-slide="17" data-section="Northwest Ohio · concept">
     <div class="slide-inner">
-      <div class="section-tag">Northwest Ohio · concept · build (1 of 3)</div>
+      <div class="section-tag nw-ohio">Northwest Ohio · concept · build (1 of 3)</div>
       <h2>First — <span class="hl">we can build it.</span></h2>
-      <div class="key-insight"><span>The XFRA pod isn't exotic — it's <strong>HVAC-form-factor metalwork</strong> with liquid cooling and insulation. <strong>Every layer of that supply chain lives within 30 minutes of Toledo.</strong> Span ships pods from California; we could fabricate them here.</span></div>
+      <div class="key-insight nw-ohio"><span>The XFRA pod isn't exotic — it's <strong>HVAC-form-factor metalwork</strong> with liquid cooling and insulation. <strong>Every layer of that supply chain lives within 30 minutes of Toledo.</strong> Span ships pods from California; we could fabricate them here.</span></div>
       <p class="story">Most analyses of XFRA treat the deployment region as a passive host. <em>Northwest Ohio's industrial base would change that relationship.</em> The same supply chain that built the auto industry and the glass industry can build outdoor compute enclosures.</p>
       <div class="asset-grid">
         <div class="asset-card featured">
@@ -1848,18 +2016,18 @@
     </div>
   </section>
 
-  <!-- 17: INSTALL IT — workforce & builder channel (2 of 3) -->
-  <section class="slide" data-slide="17" data-section="Northwest Ohio · concept">
+  <!-- 18: INSTALL IT — workforce & builder channel (2 of 3) -->
+  <section class="slide" data-slide="18" data-section="Northwest Ohio · concept">
     <div class="slide-inner">
-      <div class="section-tag">Northwest Ohio · concept · install (2 of 3)</div>
+      <div class="section-tag nw-ohio">Northwest Ohio · concept · install (2 of 3)</div>
       <h2>Second — <span class="hl">we can install and service it.</span></h2>
-      <div class="key-insight"><span>Building the pod is one thing. Getting it into 50 homes and <strong>keeping it running for 5 years</strong> is another. Toledo's electrical trades and homebuilder presence make both faster than fly-in installs from California.</span></div>
+      <div class="key-insight nw-ohio"><span>Building the pod is one thing. Getting it into 50 homes and <strong>keeping it running for 5 years</strong> is another. Toledo's electrical trades and homebuilder presence make both faster than fly-in installs from California.</span></div>
       <p class="story">A pilot is a logistics exercise as much as an engineering one. <em>The trades, the apprenticeships, and the homebuilder channel all exist here</em> — no fly-in crew required.</p>
       <div class="asset-grid">
         <div class="asset-card featured">
           <div class="asset-tag">Workforce</div>
           <div class="asset-title">Skilled trades pipeline</div>
-          <div class="asset-desc">Installing an XFRA pod needs three trades: <strong>electrical</strong> (200A service tie-in, panel work), <strong>HVAC</strong> (cooling loop, heat-pump rejection), and <strong>plumbing</strong> for the heat-reuse adjacency. <strong>IBEW Local 8</strong> has thousands of electricians in the Toledo area. Every neighborhood already has an HVAC tech who can work a heat pump. <strong>Owens Community College</strong> runs registered apprenticeships in all three trades. <strong>University of Toledo</strong> engineering produces the technical talent for orchestration and supervisory roles.</div>
+          <div class="asset-desc">Installing an XFRA pod needs three trades: <strong>electrical</strong> (200A service tie-in, panel work), <strong>HVAC</strong> (cooling loop, heat-pump rejection), and <strong>plumbing</strong> for the heat-reuse adjacency. <strong>IBEW Local 8</strong> has thousands of electricians in the Toledo area. Every neighborhood already has an HVAC tech who can work a heat pump. <strong>Owens Community College</strong> runs registered apprenticeships in all three trades. <strong>University of Toledo</strong> engineering and <strong>BGSU College of Engineering and Innovation</strong> produce the technical talent for orchestration and supervisory roles.</div>
           <div class="asset-footer">No fly-in California crew needed. The trades are already here.</div>
         </div>
         <div class="asset-card featured">
@@ -1873,18 +2041,18 @@
     </div>
   </section>
 
-  <!-- 18: USE-CASE FIT — climate & latency (3 of 3) -->
-  <section class="slide" data-slide="18" data-section="Northwest Ohio · concept">
+  <!-- 19: USE-CASE FIT — climate & latency (3 of 3) -->
+  <section class="slide" data-slide="19" data-section="Northwest Ohio · concept">
     <div class="slide-inner">
-      <div class="section-tag">Northwest Ohio · concept · fit (3 of 3)</div>
+      <div class="section-tag nw-ohio">Northwest Ohio · concept · fit (3 of 3)</div>
       <h2>Third — <span class="hl">the use case fits us better.</span></h2>
-      <div class="key-insight"><span>The Sun Belt pilot has cheap power but <strong>wastes the rejected heat</strong>. We have a colder climate AND a latency hub within reach of <strong>~30 million people</strong>. Two structural advantages the Sun Belt can't claim.</span></div>
+      <div class="key-insight nw-ohio"><span>The Sun Belt pilot has cheap power but <strong>wastes the rejected heat</strong>. We have a colder climate AND a latency hub within reach of <strong>~30 million people</strong>. Two structural advantages the Sun Belt can't claim.</span></div>
       <p class="story">The Sun Belt argument for XFRA is cheap power and new construction. <em>The Northwest Ohio argument is different — and arguably stronger</em>: heat that gets used instead of dumped, plus a population center that benefits from edge-inference latency.</p>
       <div class="asset-grid">
         <div class="asset-card featured">
           <div class="asset-tag">Climate</div>
           <div class="asset-title">Cold winters turn rejected heat into a feature</div>
-          <div class="asset-desc">A 12 kW IT load's rejected heat goes to waste in Phoenix — the cooling system just dumps it. In Toledo, that same heat becomes <strong>a real co-benefit</strong>. Captured into a pre-heat loop for the host's domestic water, it offsets natural-gas heating cost <strong>estimated $500–1,000/yr</strong> depending on home size and gas rates. <em>The host signs up for the heat, not just the bill credit.</em> The slide-10 adjacency that's optional for Span becomes our primary value prop.</div>
+          <div class="asset-desc">A 12 kW IT load's rejected heat goes to waste in Phoenix — the cooling system just dumps it. In Toledo, that same heat becomes <strong>a real co-benefit</strong>. Captured into a pre-heat loop for the host's domestic water, it offsets natural-gas heating cost <strong>estimated $500–1,000/yr per node</strong> depending on home size and gas rates. <em>The host signs up for the heat, not just the bill credit.</em> The slide-10 adjacency that's optional for Span becomes our primary value prop.</div>
           <div class="asset-footer">What's a thermal liability in Phoenix is a thermal asset in Toledo.</div>
         </div>
         <div class="asset-card featured">
@@ -1898,12 +2066,12 @@
     </div>
   </section>
 
-  <!-- 19: TOLEDO PILOT — what it looks like -->
-  <section class="slide" data-slide="19" data-section="Northwest Ohio · concept">
+  <!-- 20: TOLEDO PILOT — what it looks like -->
+  <section class="slide" data-slide="20" data-section="Northwest Ohio · concept">
     <div class="slide-inner">
-      <div class="section-tag">Northwest Ohio · concept · what it looks like</div>
+      <div class="section-tag nw-ohio">Northwest Ohio · concept · what it looks like</div>
       <h2>A Toledo pilot would <span class="hl">look different</span> — and that's the point.</h2>
-      <div class="key-insight"><span>50-home pilot in Sylvania, Maumee, or West Toledo. <strong>Enclosures built locally. Heat reuse as the primary host value.</strong> Different inputs, different math, different story — one that includes a regional manufacturing angle Span's Southwest pilot can't tell.</span></div>
+      <div class="key-insight nw-ohio"><span>50-home pilot in Sylvania, Maumee, or West Toledo. <strong>Enclosures built locally. Heat reuse as the primary host value.</strong> Different inputs, different math, different story — one that includes a regional manufacturing angle Span's Southwest pilot can't tell.</span></div>
       <p class="story">Three differences from Span's Southwest pilot — and each one tilts in Toledo's favor.</p>
       <div class="adj-grid">
         <div class="adj-card adj-near">
@@ -1914,7 +2082,7 @@
         <div class="adj-card adj-near">
           <div class="adj-distance">Difference 2</div>
           <div class="adj-title">Heat reuse as primary value</div>
-          <div class="adj-desc">A 12 kW IT load rejects heat year-round. In Toledo winters, capturing it pre-warms the host's domestic water and offsets natural-gas heating cost — <strong>estimated $500–1,000/yr</strong> depending on home size. Hosts sign up for the heat, not just the bill credit.</div>
+          <div class="adj-desc">A 12 kW IT load rejects heat year-round. In Toledo winters, capturing it pre-warms the host's domestic water and offsets natural-gas heating cost — <strong>estimated $500–1,000/yr per node</strong> depending on home size. Hosts sign up for the heat, not just the bill credit.</div>
         </div>
         <div class="adj-card adj-near">
           <div class="adj-distance">Difference 3</div>
@@ -1924,10 +2092,39 @@
         <div class="adj-card">
           <div class="adj-distance">Who's at the table</div>
           <div class="adj-title">Anchor partners to validate</div>
-          <div class="adj-desc">First Solar (PV pairing). Pulte / NVR / Drees (builder channel). AEP Ohio or Toledo Edison (tariff conversation). University of Toledo PVIC (technical validation). Owens Community College (workforce pipeline). Regional Growth Partnership and TMACOG (economic-development cover).</div>
+          <div class="adj-desc">First Solar (PV pairing). Pulte / NVR / Drees (builder channel). AEP Ohio or Toledo Edison (tariff conversation). University of Toledo PVIC (technical validation). <strong>BGSU College of Engineering and Innovation</strong> (engineering capacity + research partner). Owens Community College (workforce pipeline). Regional Growth Partnership and TMACOG (economic-development cover).</div>
         </div>
       </div>
-      <p class="beat">This is concept, not commitment. <strong>Next step: a five-meeting roadshow</strong> — Pulte regional, AEP Ohio, First Solar BD, UToledo PVIC, and RGP — to see who'd put their name on a pilot.</p>
+      <p class="beat">This is concept, not commitment. <strong>Next step: a six-meeting roadshow</strong> — Pulte regional, AEP Ohio, First Solar BD, UToledo PVIC, <strong>BGSU College of Engineering and Innovation</strong>, and RGP — to see who'd put their name on a pilot.</p>
+    </div>
+  </section>
+
+  <!-- 21: SIMPLE CLOSING — the NW Ohio opportunity, distilled -->
+  <section class="slide" data-slide="21" data-section="Northwest Ohio · concept">
+    <div class="slide-inner">
+      <div class="section-tag nw-ohio">Northwest Ohio · the simple version</div>
+      <h2>If this works, <span class="hl">somebody hosts it.</span></h2>
+      <p class="lead">The only real question is whether that's <strong style="color: var(--highlight);">us</strong>.</p>
+
+      <div class="simple-closing">
+        <div class="sc-card">
+          <div class="sc-num">01</div>
+          <div class="sc-head">We can build it.</div>
+          <div class="sc-body">The enclosure supply chain — metal, insulation, thermal, glass — already lives within 30 minutes of Toledo. Owens Corning, Dana, First Solar.</div>
+        </div>
+        <div class="sc-card">
+          <div class="sc-num">02</div>
+          <div class="sc-head">We can install it.</div>
+          <div class="sc-body">IBEW Local 8 electricians, regional HVAC trades, and Pulte / NVR / Drees actively building in Sylvania, Maumee, and Perrysburg.</div>
+        </div>
+        <div class="sc-card">
+          <div class="sc-num">03</div>
+          <div class="sc-head">We can use it.</div>
+          <div class="sc-body">Cold winters turn the rejected heat into a <strong>$500–1,000/yr per node</strong> value prop for the host — a feature the Sun Belt can't match.</div>
+        </div>
+      </div>
+
+      <div class="key-insight nw-ohio"><span><strong>The pilot is six meetings away.</strong> Pulte regional · AEP Ohio · First Solar BD · UToledo PVIC · <strong>BGSU College of Engineering and Innovation</strong> · Regional Growth Partnership. <em>Either we set the table — or somebody else does, and we host their dinner.</em></span></div>
     </div>
   </section>
 
@@ -1935,11 +2132,10 @@
 
 <div class="nav">
   <button id="prev" aria-label="Previous slide">‹</button>
-  <div class="dots" id="dots"></div>
   <button id="next" aria-label="Next slide">›</button>
 </div>
 
-<div class="kbd-hint"><kbd>←</kbd> <kbd>→</kbd> or <kbd>space</kbd> to navigate · <kbd>1–9</kbd> to jump · <kbd>esc</kbd> to unpin</div>
+<div class="kbd-hint"><kbd>←</kbd> <kbd>→</kbd> or <kbd>space</kbd> to navigate · <kbd>esc</kbd> to unpin</div>
 
 <script>
 (function() {
@@ -1947,21 +2143,11 @@
   const total = slides.length;
   const cur = document.getElementById('cur');
   const tot = document.getElementById('tot');
-  const dotsEl = document.getElementById('dots');
   const prev = document.getElementById('prev');
   const next = document.getElementById('next');
   let i = 0;
 
   tot.textContent = total;
-
-  for (let n = 0; n < total; n++) {
-    const d = document.createElement('button');
-    d.className = 'dot' + (n === 0 ? ' active' : '');
-    d.setAttribute('aria-label', 'Slide ' + (n + 1));
-    d.addEventListener('click', (e) => { e.stopPropagation(); go(n); });
-    dotsEl.appendChild(d);
-  }
-  const dots = dotsEl.querySelectorAll('.dot');
 
   function unpinAll() {
     document.querySelectorAll('.has-callout.pinned').forEach(el => el.classList.remove('pinned'));
@@ -1972,10 +2158,8 @@
     if (n < 0 || n >= total) return;
     unpinAll();
     slides[i].classList.remove('active');
-    dots[i].classList.remove('active');
     i = n;
     slides[i].classList.add('active');
-    dots[i].classList.add('active');
     cur.textContent = i + 1;
     prev.disabled = i === 0;
     next.disabled = i === total - 1;
@@ -1987,6 +2171,14 @@
 
   prev.addEventListener('click', (e) => { e.stopPropagation(); go(i - 1); });
   next.addEventListener('click', (e) => { e.stopPropagation(); go(i + 1); });
+
+  // TOC click → jump to the indicated slide
+  document.querySelectorAll('.toc-item[data-go]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      go(parseInt(btn.dataset.go, 10));
+    });
+  });
 
   // Pin behavior — click any .has-callout to pin its callout open
   document.addEventListener('click', (e) => {
@@ -2018,9 +2210,6 @@
       go(0);
     } else if (e.key === 'End') {
       go(total - 1);
-    } else if (/^[1-9]$/.test(e.key)) {
-      const n = parseInt(e.key, 10) - 1;
-      if (n < total) go(n);
     }
   });
 
