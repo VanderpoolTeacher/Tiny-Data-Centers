@@ -1,0 +1,2273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Span XFRA — Strict Analysis</title>
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --bg-elev: #131829;
+    --bg-card: #1a2138;
+    --border: #2a3450;
+    --text: #e8ecf4;
+    --text-dim: #9ba8c4;
+    --text-faint: #8a99b5;
+    --accent: #5ea3ff;
+    --accent-dim: #2a4a7a;
+    --success: #4ade80;
+    --warning: #fbbf24;
+    --danger: #f87171;
+    --critical: #ef4444;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .deck { position: relative; height: 100vh; width: 100vw; }
+  .slide {
+    position: absolute;
+    inset: 0;
+    padding: 64px 80px 96px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    opacity: 0;
+    transform: translateY(20px);
+    pointer-events: none;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    overflow-y: auto;
+  }
+  .slide.active { opacity: 1; transform: translateY(0); pointer-events: auto; }
+  /* margin:auto in a flex-column container centers the child vertically
+     when there's room, and collapses to 0 when there isn't — so short
+     slides stay centered, tall slides top-align without overflow. */
+  .slide-inner { max-width: 1100px; margin: auto; width: 100%; flex-shrink: 0; }
+  .eyebrow {
+    color: var(--accent);
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 500;
+    margin-bottom: 12px;
+  }
+  h1.title {
+    font-size: 60px;
+    font-weight: 200;
+    letter-spacing: -1.5px;
+    line-height: 1.05;
+    margin-bottom: 24px;
+  }
+  h1.title em { font-style: normal; color: var(--accent); font-weight: 300; }
+  h2 {
+    font-size: 34px;
+    font-weight: 300;
+    letter-spacing: -0.5px;
+    line-height: 1.15;
+    margin-bottom: 20px;
+  }
+  h3 { font-size: 20px; font-weight: 500; letter-spacing: -0.2px; margin-bottom: 12px; }
+  p { color: var(--text-dim); font-size: 16px; max-width: 900px; }
+  p.lead { color: var(--text); font-size: 20px; font-weight: 300; line-height: 1.45; max-width: 900px; }
+  p.lead strong { color: var(--accent); font-weight: 500; }
+  p.story {
+    color: var(--text-dim);
+    font-size: 16px;
+    line-height: 1.6;
+    max-width: 900px;
+    margin-top: 16px;
+    border-left: 2px solid var(--accent-dim);
+    padding-left: 16px;
+  }
+  p.story em { color: var(--text); font-style: normal; font-weight: 500; }
+  /* Strong is the eye's first target inside body copy — brighter and accent-colored */
+  p.story strong, .focus-body strong, .closing-card strong, p strong {
+    color: var(--accent);
+    font-weight: 500;
+  }
+  h2 .hl { color: var(--accent); }
+  /* Key-insight pill — the slide's bottom line, scannable in <1s */
+  .key-insight {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 16px;
+    background: rgba(94, 163, 255, 0.08);
+    border-left: 3px solid var(--accent);
+    border-radius: 4px;
+    margin: 18px 0 10px;
+    font-size: 15px;
+    color: var(--text);
+    line-height: 1.5;
+    max-width: 900px;
+  }
+  .key-insight::before {
+    content: 'KEY';
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    font-weight: 500;
+    border: 1px solid var(--accent-dim);
+    padding: 3px 7px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    background: rgba(10, 14, 26, 0.5);
+  }
+  .key-insight strong { color: var(--accent); font-weight: 500; }
+  p.beat {
+    color: var(--text-faint);
+    font-size: 14px;
+    font-style: italic;
+    line-height: 1.5;
+    max-width: 900px;
+    margin-top: 24px;
+  }
+  p.beat::before {
+    content: '↓ ';
+    color: var(--accent);
+    font-style: normal;
+    margin-right: 4px;
+  }
+  .meta { color: var(--text-faint); font-size: 14px; margin-top: 24px; }
+  /* NAV */
+  .nav {
+    position: fixed;
+    bottom: 24px;
+    left: 0; right: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    z-index: 100;
+    pointer-events: none;
+  }
+  .nav button {
+    pointer-events: auto;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+  }
+  .nav button:hover { background: var(--bg-card); color: var(--text); border-color: var(--accent); }
+  .nav button:disabled { opacity: 0.3; cursor: not-allowed; }
+  .dots { display: flex; gap: 6px; align-items: center; pointer-events: auto; }
+  .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--text-faint);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    padding: 0;
+  }
+  .dot.active { background: var(--accent); width: 18px; border-radius: 3px; }
+  .counter {
+    position: fixed;
+    top: 24px; right: 32px;
+    color: var(--text-faint);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    z-index: 100;
+  }
+  .counter strong { color: var(--text); font-weight: 500; }
+  .brand {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    color: var(--text-faint);
+    font-size: 11px;
+    letter-spacing: 2.5px;
+    z-index: 100;
+    pointer-events: none;
+    border-right: 1px solid var(--border);
+    background: var(--bg);
+    text-transform: uppercase;
+  }
+  .brand span { color: var(--accent); }
+  .kbd-hint {
+    position: fixed;
+    bottom: 24px; right: 32px;
+    color: var(--text-faint);
+    font-size: 11px;
+    z-index: 100;
+    opacity: 0.5;
+  }
+  kbd {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 2px 6px;
+    font-family: inherit;
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+  /* UNIFIED CALLOUT — hover to peek, click to pin */
+  .has-callout { position: relative; cursor: pointer; }
+  .callout {
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    font-size: 12.5px;
+    color: var(--text-dim);
+    line-height: 1.55;
+    width: 300px;
+    z-index: 50;
+    text-align: left;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s ease, transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  }
+  .callout strong { color: var(--text); display: block; margin-bottom: 4px; font-weight: 500; }
+  .callout::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -6px;
+    border: 6px solid transparent;
+    border-top-color: var(--border);
+  }
+  .has-callout:hover .callout {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    pointer-events: auto;
+  }
+  .has-callout.pinned .callout {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    pointer-events: auto;
+    border-color: var(--accent);
+    box-shadow: 0 8px 32px rgba(94, 163, 255, 0.25);
+  }
+  .has-callout.pinned .callout::after { border-top-color: var(--accent); }
+  .has-callout.pinned::before {
+    content: '';
+    position: absolute;
+    top: 6px; right: 6px;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    z-index: 60;
+    box-shadow: 0 0 8px var(--accent);
+  }
+  /* Variant: below */
+  .callout.below {
+    bottom: auto;
+    top: calc(100% + 10px);
+    transform: translateX(-50%) translateY(-4px);
+  }
+  .callout.below::after {
+    top: auto;
+    bottom: 100%;
+    border-top-color: transparent;
+    border-bottom-color: var(--border);
+  }
+  .has-callout:hover .callout.below,
+  .has-callout.pinned .callout.below {
+    transform: translateX(-50%) translateY(0);
+  }
+  .has-callout.pinned .callout.below::after { border-bottom-color: var(--accent); }
+  /* SCORECARD */
+  .scorecard { display: grid; gap: 10px; margin-top: 16px; }
+  .score-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    gap: 24px;
+    padding: 16px 20px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+  }
+  .score-row:hover { border-color: var(--accent-dim); background: var(--bg-card); }
+  .score-row.pinned { border-color: var(--accent); background: var(--bg-card); }
+  .score-q { font-size: 15px; color: var(--text); }
+  .verdict {
+    font-size: 13px;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+  .v-yes { background: rgba(74, 222, 128, 0.15); color: var(--success); }
+  .v-prob { background: rgba(94, 163, 255, 0.15); color: var(--accent); }
+  .v-mixed { background: rgba(251, 191, 36, 0.15); color: var(--warning); }
+  .v-no { background: rgba(248, 113, 113, 0.15); color: var(--danger); }
+  .v-uncertain { background: rgba(155, 168, 196, 0.15); color: var(--text-dim); }
+  .confidence { display: flex; gap: 2px; align-items: center; }
+  .conf-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-faint); }
+  .conf-dot.on { background: var(--accent); }
+  .conf-label {
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-left: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    min-width: 80px;
+  }
+  /* HARDWARE */
+  .hardware-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .hw-card {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px;
+    transition: all 0.2s ease;
+  }
+  .hw-card:hover { background: var(--bg-card); border-color: var(--accent-dim); }
+  .hw-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-faint);
+    margin-bottom: 8px;
+  }
+  .hw-value { font-size: 20px; font-weight: 400; color: var(--text); margin-bottom: 6px; }
+  .hw-detail { font-size: 13px; color: var(--text-dim); line-height: 1.4; }
+  /* RISK MATRIX */
+  .risk-matrix {
+    display: grid;
+    grid-template-columns: 60px repeat(5, 1fr);
+    gap: 6px;
+    margin-top: 16px;
+    max-width: 800px;
+  }
+  .rm-label-y {
+    grid-column: 1;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    font-size: 11px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding-right: 8px;
+    text-align: right;
+  }
+  .rm-cell {
+    aspect-ratio: 1.4;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+  }
+  .rm-cell:hover { transform: scale(1.05); z-index: 5; }
+  .rm-cell.pinned { transform: scale(1.05); z-index: 5; }
+  .rm-cell.low { background: rgba(74, 222, 128, 0.08); border-color: rgba(74, 222, 128, 0.3); }
+  .rm-cell.med { background: rgba(251, 191, 36, 0.1); border-color: rgba(251, 191, 36, 0.3); }
+  .rm-cell.high { background: rgba(248, 113, 113, 0.12); border-color: rgba(248, 113, 113, 0.4); }
+  .rm-cell.critical { background: rgba(239, 68, 68, 0.18); border-color: rgba(239, 68, 68, 0.55); }
+  .rm-count { font-weight: 500; color: var(--text); font-size: 18px; }
+  .rm-cell.empty { cursor: default; }
+  .rm-axis-x {
+    grid-column: 2 / span 5;
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 8px;
+  }
+  .rm-axis-x-labels {
+    grid-column: 2 / span 5;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    font-size: 10px;
+    color: var(--text-faint);
+    text-align: center;
+  }
+  .rm-legend {
+    display: flex;
+    gap: 16px;
+    margin-top: 24px;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .rm-legend-item { display: flex; align-items: center; gap: 6px; }
+  .rm-swatch { width: 12px; height: 12px; border-radius: 3px; }
+  /* Slide 9 — press narrative vs. actual exposure (two-column compare) */
+  .risk-compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 22px;
+  }
+  .risk-col {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 22px;
+  }
+  .risk-col-tag {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-faint);
+    margin-bottom: 4px;
+  }
+  .risk-col-h {
+    font-size: 17px;
+    color: var(--text);
+    font-weight: 500;
+    margin-bottom: 16px;
+  }
+  .risk-col.risk-press { opacity: 0.72; }
+  .risk-col.risk-actual { border-color: var(--accent-dim); }
+  .risk-col.risk-actual .risk-col-h { color: var(--accent); }
+  .risk-item {
+    padding: 12px 0;
+    border-top: 1px solid var(--border);
+  }
+  .risk-item:first-of-type { padding-top: 0; border-top: none; }
+  .risk-item:last-of-type { padding-bottom: 0; }
+  .risk-name {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .risk-label {
+    flex: 1;
+    font-size: 14px;
+    color: var(--text);
+    font-weight: 500;
+  }
+  .risk-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .risk-dot.critical { background: var(--critical); box-shadow: 0 0 6px rgba(239, 68, 68, 0.6); }
+  .risk-dot.high { background: var(--danger); }
+  .risk-dot.medium { background: var(--warning); }
+  .risk-dot.low { background: var(--success); }
+  .risk-sev {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-faint);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .risk-item.critical .risk-sev { color: var(--critical); }
+  .risk-item.high .risk-sev { color: var(--danger); }
+  .risk-status, .risk-meta {
+    font-size: 12.5px;
+    color: var(--text-dim);
+    margin-top: 5px;
+    padding-left: 18px;
+    line-height: 1.55;
+  }
+  .risk-status { font-style: italic; }
+  @media (max-width: 720px) {
+    .risk-compare { grid-template-columns: 1fr; }
+    .risk-col.risk-press { order: 2; }
+  }
+  /* UNIT ECONOMICS */
+  .econ-chart {
+    display: flex;
+    gap: 24px;
+    margin-top: 24px;
+    align-items: flex-end;
+    height: 320px;
+  }
+  .bar-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    height: 100%;
+  }
+  .bar-stack {
+    width: 100%;
+    max-width: 120px;
+    flex: 1;
+    display: flex;
+    flex-direction: column-reverse;
+    border-radius: 6px;
+    overflow: visible;
+    position: relative;
+  }
+  .bar-seg {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: rgba(255,255,255,0.95);
+    font-weight: 500;
+    transition: filter 0.15s ease;
+  }
+  .bar-seg:hover { filter: brightness(1.2); }
+  .bar-seg.pinned { filter: brightness(1.2); }
+  .bar-seg.power { background: #1e3a66; }
+  .bar-seg.net { background: #274a7d; }
+  .bar-seg.ops { background: #345a90; }
+  .bar-seg.capex { background: #406aa0; }
+  .bar-seg.revenue { background: #4ade80; color: var(--bg); }
+  .bar-seg:first-child { border-top-left-radius: 6px; border-top-right-radius: 6px; }
+  .bar-seg:last-child { border-bottom-left-radius: 6px; border-bottom-right-radius: 6px; }
+  .bar-target {
+    position: absolute;
+    left: -8px; right: -8px;
+    height: 2px;
+    background: var(--accent);
+    z-index: 10;
+  }
+  .bar-target-label {
+    position: absolute;
+    right: 0;
+    top: -22px;
+    font-size: 11px;
+    color: var(--accent);
+    background: var(--bg);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .bar-col-label { font-size: 13px; color: var(--text-dim); text-align: center; }
+  .bar-col-total {
+    font-size: 18px;
+    color: var(--text);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  .econ-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-top: 18px;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .econ-legend-item { display: flex; align-items: center; gap: 6px; }
+  .econ-swatch { width: 12px; height: 12px; border-radius: 3px; }
+  /* Horizontal stacked-bar chart (slide 6) — shared $0–$220K x-axis */
+  .hbar-chart {
+    display: grid;
+    grid-template-columns: 170px 1fr;
+    gap: 16px;
+    margin-top: 26px;
+    align-items: start;
+  }
+  .hbar-labels {
+    display: flex;
+    flex-direction: column;
+    padding-top: 28px;
+  }
+  .hbar-label {
+    text-align: right;
+    height: 56px;
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .hbar-label:last-of-type { margin-bottom: 0; }
+  .hbar-label .title { font-size: 14px; color: var(--text); font-weight: 500; }
+  .hbar-label .sub { font-size: 11px; color: var(--text-faint); margin-top: 4px; }
+  .hbar-area {
+    position: relative;
+    padding-right: 64px;
+    padding-top: 28px;
+    padding-bottom: 28px;
+  }
+  .hbar-track {
+    position: relative;
+    height: 56px;
+    margin-bottom: 16px;
+    background: rgba(255,255,255,0.025);
+    border-radius: 6px;
+  }
+  .hbar-track:last-of-type { margin-bottom: 0; }
+  .hbar {
+    display: flex;
+    height: 100%;
+    position: absolute;
+    left: 0; top: 0;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .hbar-seg {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: rgba(255,255,255,0.96);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    padding: 0 6px;
+    position: relative;
+    cursor: pointer;
+    transition: filter 0.15s ease;
+  }
+  .hbar-seg:hover { filter: brightness(1.2); }
+  .hbar-seg.pinned { filter: brightness(1.2); }
+  .hbar-seg.power { background: #1e3a66; }
+  .hbar-seg.net { background: #274a7d; }
+  .hbar-seg.ops { background: #345a90; }
+  .hbar-seg.capex { background: #406aa0; }
+  .hbar-seg.revenue { background: #4ade80; color: var(--bg); font-weight: 500; }
+  .hbar-total {
+    position: absolute;
+    left: 100%;
+    margin-left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    color: var(--text);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .hbar-threshold {
+    position: absolute;
+    top: 6px;
+    bottom: 32px;
+    width: 2px;
+    background: var(--accent);
+    z-index: 5;
+    pointer-events: none;
+  }
+  .hbar-threshold::before {
+    content: '$150K · min viable R';
+    position: absolute;
+    top: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    color: var(--accent);
+    background: var(--bg);
+    padding: 3px 8px;
+    border: 1px solid var(--accent-dim);
+    border-radius: 3px;
+    white-space: nowrap;
+    font-weight: 500;
+  }
+  .hbar-axis {
+    position: absolute;
+    left: 0;
+    right: 64px;
+    bottom: 0;
+    height: 22px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  .hbar-axis span {
+    position: absolute;
+    top: 5px;
+    transform: translateX(-50%);
+    font-size: 10px;
+    color: var(--text-faint);
+    font-variant-numeric: tabular-nums;
+  }
+  @media (max-width: 1100px) {
+    .hbar-chart { grid-template-columns: 140px 1fr; gap: 12px; }
+    .hbar-label .title { font-size: 13px; }
+    .hbar-seg { font-size: 11px; padding: 0 4px; }
+    .hbar-total { font-size: 14px; margin-left: 8px; }
+    .hbar-area { padding-right: 52px; }
+    .hbar-axis { right: 52px; }
+  }
+  @media (max-width: 720px) {
+    .hbar-chart { grid-template-columns: 1fr; }
+    .hbar-labels { padding-top: 0; }
+    .hbar-label { text-align: left; height: auto; margin-bottom: 4px; }
+  }
+  /* MOAT */
+  .moat-grid { display: grid; gap: 8px; margin-top: 16px; max-width: 900px; }
+  .moat-row {
+    display: grid;
+    grid-template-columns: 220px 110px 1fr;
+    gap: 20px;
+    padding: 14px 18px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    align-items: center;
+  }
+  .moat-asset { font-size: 14px; color: var(--text); }
+  .moat-detail { font-size: 13px; color: var(--text-dim); }
+  .def-bar { display: flex; gap: 3px; align-items: center; }
+  .def-bar-seg {
+    height: 8px;
+    width: 18px;
+    border-radius: 2px;
+    background: var(--text-faint);
+    opacity: 0.3;
+  }
+  .def-bar-seg.on { opacity: 1; }
+  .def-bar.low .def-bar-seg.on { background: var(--danger); }
+  .def-bar.med .def-bar-seg.on { background: var(--warning); }
+  .def-bar.high .def-bar-seg.on { background: var(--success); }
+  /* COMPETITORS */
+  .comp-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 24px;
+  }
+  .comp-card {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px;
+    position: relative;
+    transition: all 0.2s ease;
+  }
+  .comp-card:hover { border-color: var(--accent); transform: translateY(-3px); }
+  .comp-rank {
+    position: absolute;
+    top: 14px; right: 16px;
+    font-size: 32px;
+    font-weight: 200;
+    color: var(--text-faint);
+    line-height: 1;
+  }
+  .comp-name { font-size: 18px; font-weight: 500; color: var(--text); margin-bottom: 12px; }
+  .comp-shape {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+  .comp-desc { font-size: 13px; color: var(--text-dim); line-height: 1.5; margin-bottom: 16px; }
+  .comp-wins, .comp-loses {
+    font-size: 12px;
+    padding: 8px 10px;
+    border-radius: 4px;
+    margin-bottom: 6px;
+  }
+  .comp-wins { background: rgba(74, 222, 128, 0.08); color: var(--success); }
+  .comp-loses { background: rgba(248, 113, 113, 0.08); color: var(--danger); }
+  /* ADJACENCIES */
+  .adj-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-top: 20px;
+  }
+  .adj-card {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    transition: all 0.2s ease;
+  }
+  .adj-card:hover { background: var(--bg-card); border-color: var(--accent); }
+  .adj-distance {
+    display: inline-block;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-faint);
+    margin-bottom: 8px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: var(--bg);
+  }
+  .adj-title { font-size: 15px; color: var(--text); margin-bottom: 8px; font-weight: 500; }
+  .adj-desc { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
+  .adj-near { border-color: var(--accent-dim); }
+  .adj-near .adj-distance { background: rgba(94, 163, 255, 0.15); color: var(--accent); }
+  /* Asset cards — larger, more breathing room for NW Ohio expansion slides */
+  .asset-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin-top: 22px;
+  }
+  .asset-card {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px 24px;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+  }
+  .asset-card.featured { border-color: var(--accent-dim); }
+  .asset-card:hover { background: var(--bg-card); border-color: var(--accent); }
+  .asset-tag {
+    display: inline-block;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--accent);
+    margin-bottom: 10px;
+    padding: 3px 8px;
+    background: rgba(94, 163, 255, 0.1);
+    border-radius: 3px;
+    align-self: flex-start;
+  }
+  .asset-title {
+    font-size: 18px;
+    color: var(--text);
+    font-weight: 500;
+    margin-bottom: 12px;
+    line-height: 1.3;
+  }
+  .asset-desc {
+    font-size: 14px;
+    color: var(--text-dim);
+    line-height: 1.6;
+    flex: 1;
+  }
+  .asset-desc strong { color: var(--accent); font-weight: 500; }
+  .asset-desc em { color: var(--text); font-style: normal; font-weight: 500; }
+  .asset-footer {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    font-size: 12.5px;
+    color: var(--text-faint);
+    font-style: italic;
+    line-height: 1.5;
+  }
+  @media (max-width: 720px) {
+    .asset-grid { grid-template-columns: 1fr; }
+  }
+  /* WATCHLIST */
+  .watchlist { margin-top: 16px; }
+  .watch-item {
+    display: grid;
+    grid-template-columns: 32px 1fr auto;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 18px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 8px;
+    transition: all 0.2s ease;
+  }
+  .watch-item:hover { border-color: var(--accent-dim); }
+  .watch-num {
+    font-size: 22px;
+    font-weight: 200;
+    color: var(--accent);
+    text-align: center;
+  }
+  .watch-text { font-size: 14px; color: var(--text); }
+  .watch-impact {
+    font-size: 11px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  /* CLOSING */
+  .closing-card {
+    background: var(--bg-elev);
+    border: 1px solid var(--accent-dim);
+    border-radius: 12px;
+    padding: 32px 36px;
+    margin-top: 20px;
+  }
+  .closing-card p { font-size: 17px; line-height: 1.6; color: var(--text); }
+  .closing-card p + p { margin-top: 14px; }
+  .closing-card em { color: var(--accent); font-style: normal; font-weight: 500; }
+  .source-list { margin-top: 24px; }
+  .source-list a {
+    display: block;
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 13px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    transition: color 0.15s ease;
+  }
+  .source-list a:hover { color: var(--accent); }
+  .source-list a:last-child { border-bottom: none; }
+  /* THREE QUESTIONS */
+  .three-q { display: grid; gap: 16px; margin-top: 20px; }
+  .q-card {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px 28px;
+    display: grid;
+    grid-template-columns: 60px 1fr;
+    gap: 24px;
+    align-items: center;
+    transition: all 0.2s ease;
+  }
+  .q-card:hover { border-color: var(--accent); background: var(--bg-card); }
+  .q-num { font-size: 44px; font-weight: 200; color: var(--accent); line-height: 1; }
+  .q-text { font-size: 17px; color: var(--text); line-height: 1.4; }
+  /* SECTION DIVIDER */
+  .section-tag {
+    color: var(--accent);
+    font-size: 12px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    font-weight: 500;
+    margin-bottom: 14px;
+  }
+  /* HINT */
+  .interact-hint {
+    margin-top: 10px;
+    font-size: 11px;
+    color: var(--text-faint);
+    letter-spacing: 0.5px;
+  }
+  .interact-hint kbd { font-size: 10px; }
+  /* STORY PATH (slide 2 — guided walk-through) */
+  .pathway {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin: 28px 0 24px;
+    position: relative;
+    padding: 0 18px;
+  }
+  .pathway::before {
+    content: '';
+    position: absolute;
+    left: 32px; right: 32px;
+    top: 16px;
+    height: 2px;
+    background: var(--border);
+    z-index: 0;
+  }
+  .pathway-progress {
+    position: absolute;
+    left: 32px;
+    top: 16px;
+    height: 2px;
+    background: var(--accent);
+    z-index: 1;
+    transition: width 0.3s ease;
+  }
+  .stop {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0 4px;
+    position: relative;
+    z-index: 2;
+    font-family: inherit;
+  }
+  .stop-num {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    color: var(--text-dim);
+    transition: all 0.2s ease;
+    font-weight: 500;
+  }
+  .stop-label {
+    font-size: 11px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: center;
+    max-width: 100px;
+    line-height: 1.3;
+    transition: color 0.2s ease;
+  }
+  .stop:hover .stop-num { border-color: var(--accent); color: var(--text); }
+  .stop:hover .stop-label { color: var(--text-dim); }
+  .stop.visited .stop-num {
+    background: var(--accent-dim);
+    border-color: var(--accent-dim);
+    color: var(--text);
+  }
+  .stop.visited .stop-label { color: var(--text-dim); }
+  .stop.active .stop-num {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--bg);
+    transform: scale(1.15);
+    box-shadow: 0 0 0 6px rgba(94, 163, 255, 0.18);
+  }
+  .stop.active .stop-label { color: var(--accent); }
+  /* Risk-level coloring for pathway stops (slide 4) */
+  .stop.risk-low .stop-num { border-color: rgba(74, 222, 128, 0.45); }
+  .stop.risk-med .stop-num { border-color: rgba(251, 191, 36, 0.45); }
+  .stop.risk-high .stop-num { border-color: rgba(248, 113, 113, 0.55); }
+  .stop.risk-high .stop-label { color: rgba(248, 113, 113, 0.78); }
+  .stop.risk-low.visited .stop-num {
+    background: rgba(74, 222, 128, 0.15); border-color: rgba(74, 222, 128, 0.5); color: var(--text);
+  }
+  .stop.risk-med.visited .stop-num {
+    background: rgba(251, 191, 36, 0.15); border-color: rgba(251, 191, 36, 0.5); color: var(--text);
+  }
+  .stop.risk-high.visited .stop-num {
+    background: rgba(248, 113, 113, 0.15); border-color: rgba(248, 113, 113, 0.6); color: var(--text);
+  }
+  .stop.risk-low.active .stop-num {
+    background: var(--success); border-color: var(--success); color: var(--bg);
+    box-shadow: 0 0 0 6px rgba(74, 222, 128, 0.18);
+  }
+  .stop.risk-med.active .stop-num {
+    background: var(--warning); border-color: var(--warning); color: var(--bg);
+    box-shadow: 0 0 0 6px rgba(251, 191, 36, 0.18);
+  }
+  .stop.risk-high.active .stop-num {
+    background: var(--danger); border-color: var(--danger); color: var(--bg);
+    box-shadow: 0 0 0 6px rgba(248, 113, 113, 0.18);
+  }
+  .stop.risk-low.active .stop-label { color: var(--success); }
+  .stop.risk-med.active .stop-label { color: var(--warning); }
+  .stop.risk-high.active .stop-label { color: var(--danger); }
+  .focus {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 28px;
+    min-height: 240px;
+    display: flex;
+    flex-direction: column;
+  }
+  .focus-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+  .focus-q {
+    font-size: 22px;
+    color: var(--text);
+    font-weight: 400;
+    line-height: 1.3;
+    flex: 1;
+    min-width: 280px;
+  }
+  .focus-body {
+    font-size: 15px;
+    color: var(--text-dim);
+    line-height: 1.65;
+    margin-bottom: 0;
+    flex: 1;
+  }
+  .focus-bridge {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 14px;
+    color: var(--text-dim);
+    line-height: 1.55;
+  }
+  .focus-bridge strong {
+    color: var(--accent);
+    font-weight: 500;
+    margin-right: 6px;
+  }
+  .focus-bridge.final strong { color: var(--success); }
+  .step-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    margin-top: 18px;
+  }
+  .step-btn {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 9px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: inherit;
+    transition: all 0.15s ease;
+  }
+  .step-btn:hover:not(:disabled) {
+    border-color: var(--accent);
+    color: var(--text);
+    background: var(--bg-card);
+  }
+  .step-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .step-pos {
+    font-size: 13px;
+    color: var(--text-faint);
+    font-variant-numeric: tabular-nums;
+    min-width: 60px;
+    text-align: center;
+  }
+  @media (max-width: 1100px) {
+    .stop-label { font-size: 10px; max-width: 80px; }
+    .focus-q { font-size: 19px; }
+  }
+  @media (max-width: 720px) {
+    .pathway { flex-wrap: wrap; gap: 12px; }
+    .pathway::before, .pathway-progress { display: none; }
+    .stop { flex: 0 0 calc(25% - 8px); }
+    .stop-label { font-size: 9px; }
+  }
+  /* RESPONSIVENESS */
+  @media (max-width: 1100px) {
+    .slide { padding: 40px 50px 96px 64px; }
+    h1.title { font-size: 44px; }
+    h2 { font-size: 26px; }
+    .hardware-grid, .comp-cards, .adj-grid { grid-template-columns: repeat(2, 1fr); }
+    .brand { width: 28px; font-size: 10px; letter-spacing: 2px; }
+  }
+  @media (max-width: 720px) {
+    .slide { padding: 30px 24px 96px; }
+    h1.title { font-size: 32px; }
+    h2 { font-size: 20px; }
+    .hardware-grid, .comp-cards, .adj-grid { grid-template-columns: 1fr; }
+    .econ-chart { flex-direction: column; height: auto; }
+    .bar-stack { max-width: 100%; height: 80px; }
+    .moat-row { grid-template-columns: 1fr; gap: 8px; }
+    .counter, .brand, .kbd-hint { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="brand">SPAN <span>XFRA</span> · Strict analysis</div>
+<div class="counter"><strong id="cur">1</strong> / <span id="tot">13</span></div>
+
+<div class="deck" id="deck">
+
+  <!-- 1: TITLE -->
+  <section class="slide active" data-slide="1">
+    <div class="slide-inner" style="max-width: 900px;">
+      <div class="eyebrow">Strict analytical report</div>
+      <h1 class="title">Span <em>XFRA</em><br/>A distributed AI data center<br/>on the side of a house.</h1>
+      <p class="lead">Span just announced a plan to put a 16-GPU AI inference pod on the side of <strong>80,000 American homes</strong>. <strong>The hardware is real.</strong> The economics are not yet proven.</p>
+      <p class="story">This deck is the <em>strict reading</em> of what the evidence actually supports — across the technical claim, the unit economics, the strategic position, the risk surface, and the opportunities the analysis opens up. We build the argument one slide at a time. By the end, we get to <strong>the three questions that decide the whole bet</strong>.</p>
+      <p class="meta">Prepared 2026-05-16 · 13 slides · ← → to navigate · click any element to pin its detail</p>
+    </div>
+  </section>
+
+  <!-- 2: 7-QUESTION PATHWAY (click-through story) -->
+  <section class="slide" data-slide="2">
+    <div class="slide-inner">
+      <div class="section-tag">Executive summary</div>
+      <h2>Before the pieces, the answer.</h2>
+      <p class="story"><strong>Seven questions decide the whole thing.</strong> We walk through them in order — <em>each one sets up the next.</em> The pattern matters more than any single answer: <strong>confidence is high where the engineering is, and drops as you move toward economics and politics at scale.</strong></p>
+
+      <div class="pathway" id="q-path">
+        <div class="pathway-progress" id="q-progress"></div>
+        <button class="stop active" data-q="0">
+          <span class="stop-num">1</span>
+          <span class="stop-label">Hardware</span>
+        </button>
+        <button class="stop" data-q="1">
+          <span class="stop-num">2</span>
+          <span class="stop-label">Host envelope</span>
+        </button>
+        <button class="stop" data-q="2">
+          <span class="stop-num">3</span>
+          <span class="stop-label">Pilot ship</span>
+        </button>
+        <button class="stop" data-q="3">
+          <span class="stop-num">4</span>
+          <span class="stop-label">1K-node econ</span>
+        </button>
+        <button class="stop" data-q="4">
+          <span class="stop-num">5</span>
+          <span class="stop-label">80K-node econ</span>
+        </button>
+        <button class="stop" data-q="5">
+          <span class="stop-num">6</span>
+          <span class="stop-label">Regulation</span>
+        </button>
+        <button class="stop" data-q="6">
+          <span class="stop-num">7</span>
+          <span class="stop-label">Defensibility</span>
+        </button>
+      </div>
+
+      <div class="focus" id="q-focus" aria-live="polite">
+        <!-- populated by JS -->
+      </div>
+
+      <div class="step-controls">
+        <button class="step-btn" id="q-prev">← Previous</button>
+        <span class="step-pos" id="q-pos">1 of 7</span>
+        <button class="step-btn" id="q-next">Next →</button>
+      </div>
+
+      <p class="interact-hint">Click any stop on the path · or use the buttons to walk the story</p>
+    </div>
+  </section>
+
+  <!-- 3: HARDWARE -->
+  <section class="slide" data-slide="3">
+    <div class="slide-inner">
+      <div class="section-tag">Technical viability</div>
+      <h2>Start with the thing itself.</h2>
+      <div class="key-insight"><span>A <strong>quarter-million dollars</strong> of conventional AI hardware in an outdoor HVAC-sized box. Nothing exotic — and that's the point.</span></div>
+      <p class="story">The pod is a <strong>conventional enterprise AI inference server</strong> in an industrialized outdoor box. Roughly the size of an HVAC condenser. Every component ships today. <em>The expense is real — and it's that expense that forces the economic question on the next slides.</em></p>
+      <div class="hardware-grid">
+        <div class="hw-card">
+          <div class="hw-label">GPUs</div>
+          <div class="hw-value">16 ×</div>
+          <div class="hw-detail">Nvidia RTX PRO 6000 Blackwell Server Edition. ~$9–10K each.</div>
+        </div>
+        <div class="hw-card">
+          <div class="hw-label">CPUs</div>
+          <div class="hw-value">4 ×</div>
+          <div class="hw-detail">AMD EPYC. $8.5–14K each.</div>
+        </div>
+        <div class="hw-card">
+          <div class="hw-label">Memory</div>
+          <div class="hw-value">3 TB</div>
+          <div class="hw-detail">DDR5. ~$90–105K at DC-grade pricing.</div>
+        </div>
+        <div class="hw-card">
+          <div class="hw-label">Cooling</div>
+          <div class="hw-value">Liquid</div>
+          <div class="hw-detail">Direct-to-chip. 35,000 BTU heat-pump rejection. ~60 dB.</div>
+        </div>
+        <div class="hw-card">
+          <div class="hw-label">Battery</div>
+          <div class="hw-value">15–16 kWh</div>
+          <div class="hw-detail">Whole-home backup; demand-response buffer.</div>
+        </div>
+        <div class="hw-card">
+          <div class="hw-label">Service draw</div>
+          <div class="hw-value">19.2 kW</div>
+          <div class="hw-detail">80 A at 240 V. IT load only ≈ 12.5 kW; rest is cooling + battery headroom.</div>
+        </div>
+      </div>
+      <p class="beat">Total hardware: <strong>$310–400K per node</strong>. At 80,000 nodes, that's <strong>$25–32B in compute capex</strong> deployed across American suburbs.</p>
+    </div>
+  </section>
+
+  <!-- 4: TECHNICAL COMPONENTS — risk-colored pathway -->
+  <section class="slide" data-slide="4">
+    <div class="slide-inner">
+      <div class="section-tag">Technical viability</div>
+      <h2>The integration is solvable. <span class="hl">The orchestrator is the unknown.</span></h2>
+      <div class="key-insight"><span>Five components are <strong>low or medium risk</strong>. One — the orchestration layer (stop 5, in red) — is what could break the whole thing. Span has published <strong>nothing</strong> about it.</span></div>
+      <p class="story">Walk the six technical components in order. Each stop is <em>color-coded by risk</em>: green for solved, amber for manageable, red for the unknown. The pattern — five steady stops and one red one — is the whole technical argument.</p>
+
+      <div class="pathway" id="c-path">
+        <div class="pathway-progress" id="c-progress"></div>
+        <button class="stop risk-low active" data-q="0">
+          <span class="stop-num">1</span>
+          <span class="stop-label">Hardware</span>
+        </button>
+        <button class="stop risk-med" data-q="1">
+          <span class="stop-num">2</span>
+          <span class="stop-label">Power</span>
+        </button>
+        <button class="stop risk-med" data-q="2">
+          <span class="stop-num">3</span>
+          <span class="stop-label">Cooling</span>
+        </button>
+        <button class="stop risk-med" data-q="3">
+          <span class="stop-num">4</span>
+          <span class="stop-label">Network</span>
+        </button>
+        <button class="stop risk-high" data-q="4">
+          <span class="stop-num">5</span>
+          <span class="stop-label">Orchestration</span>
+        </button>
+        <button class="stop risk-low" data-q="5">
+          <span class="stop-num">6</span>
+          <span class="stop-label">Pilot ship</span>
+        </button>
+      </div>
+
+      <div class="focus" id="c-focus" aria-live="polite">
+        <!-- populated by JS -->
+      </div>
+
+      <div class="step-controls">
+        <button class="step-btn" id="c-prev">← Previous</button>
+        <span class="step-pos" id="c-pos">1 of 6</span>
+        <button class="step-btn" id="c-next">Next →</button>
+      </div>
+
+      <p class="interact-hint">Click any stop · the red one (stop 5) is where the technical risk lives</p>
+    </div>
+  </section>
+
+  <!-- 5: BUSINESS — THE EQUATION -->
+  <section class="slide" data-slide="5">
+    <div class="slide-inner">
+      <div class="section-tag">Business viability</div>
+      <h2>The model reduces to <span class="hl">four numbers</span> per node.</h2>
+      <div class="key-insight"><span>Three numbers are knowable today. <strong>The fourth — R, the revenue Span gets per node — is the one they haven't announced.</strong> Everything else cascades from it.</span></div>
+      <p class="story">Span's whole pitch reduces to <strong>one piece of arithmetic</strong>. Three of the four numbers are observable today. <em>The fourth — what a hyperscaler will pay — is the one Span needs to land and hasn't yet announced.</em></p>
+      <div style="background: var(--bg-elev); border-radius: 12px; padding: 36px; margin-top: 20px; border: 1px solid var(--border); text-align: center; font-family: ui-monospace, 'SF Mono', monospace; font-size: 30px; color: var(--text); letter-spacing: -0.5px;">
+        <span style="color: var(--accent); font-weight: 500;">Margin</span>
+        <span style="color: var(--text-faint);"> = </span>
+        <span style="color: var(--success);">R</span>
+        <span style="color: var(--text-faint);"> − ( </span>
+        <span style="color: var(--text-dim);">C<sub style="font-size:13px;">pwr</sub></span>
+        <span style="color: var(--text-faint);"> + </span>
+        <span style="color: var(--text-dim);">C<sub style="font-size:13px;">net</sub></span>
+        <span style="color: var(--text-faint);"> + </span>
+        <span style="color: var(--text-dim);">C<sub style="font-size:13px;">op</sub></span>
+        <span style="color: var(--text-faint);"> )</span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 18px;">
+        <div style="background: var(--bg-elev); padding: 14px; border-radius: 6px; border: 1px solid var(--border);">
+          <div style="font-size: 11px; color: var(--success); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">R · Revenue</div>
+          <div style="font-size: 13px; color: var(--text-dim);">Annual compute revenue from selling node capacity. <em style="color: var(--text); font-style: normal;">The unknown.</em></div>
+        </div>
+        <div style="background: var(--bg-elev); padding: 14px; border-radius: 6px; border: 1px solid var(--border);">
+          <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">C<sub>pwr</sub> · Power</div>
+          <div style="font-size: 13px; color: var(--text-dim);">Host's electricity bill, paid by Span directly to the utility.</div>
+        </div>
+        <div style="background: var(--bg-elev); padding: 14px; border-radius: 6px; border: 1px solid var(--border);">
+          <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">C<sub>net</sub> · Internet</div>
+          <div style="font-size: 13px; color: var(--text-dim);">Host's internet bill, paid by Span to the ISP.</div>
+        </div>
+        <div style="background: var(--bg-elev); padding: 14px; border-radius: 6px; border: 1px solid var(--border);">
+          <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">C<sub>op</sub> · Ops + capex</div>
+          <div style="font-size: 13px; color: var(--text-dim);">Truck rolls, monitoring, insurance, amortized hardware.</div>
+        </div>
+      </div>
+      <p class="beat">Plug in real numbers and the picture gets sharper.</p>
+    </div>
+  </section>
+
+  <!-- 6: UNIT ECONOMICS — horizontal stacked bars, shared $0–$220K axis, $150K reference line -->
+  <section class="slide" data-slide="6">
+    <div class="slide-inner">
+      <div class="section-tag">Unit economics — derived</div>
+      <h2>Cost floor varies <span class="hl">dramatically</span> by market.</h2>
+      <div class="key-insight"><span>NV/AZ at <strong>$87K cost floor</strong> sits comfortably under the $150K viability line. CA at <strong>$111K</strong> sits much closer to it. The investor-implied <strong>~$200K target revenue</strong> sits above it.</span></div>
+      <p class="story">In the Southwest pilot, <strong>the math has room to clear</strong>. <em>In California — without a tariff carve-out — it doesn't.</em> The blue line at $150K is the floor where this becomes a real business. Costs need to be left of it; revenue needs to be right of it.</p>
+
+      <div class="hbar-chart">
+        <div class="hbar-labels">
+          <div class="hbar-label">
+            <div class="title">Southwest pilot</div>
+            <div class="sub">NV/AZ · $0.13/kWh</div>
+          </div>
+          <div class="hbar-label">
+            <div class="title">California</div>
+            <div class="sub">$0.30/kWh · no tariff</div>
+          </div>
+          <div class="hbar-label">
+            <div class="title">Target revenue</div>
+            <div class="sub">Investor-implied</div>
+          </div>
+        </div>
+        <div class="hbar-area">
+          <div class="hbar-threshold" style="left: 68.2%;"></div>
+
+          <div class="hbar-track">
+            <div class="hbar" style="width: 39.5%;">
+              <div class="hbar-seg power has-callout" style="width: 20.1%;">
+                <span>$17.5</span>
+                <div class="callout"><strong>Power · $17.5K/yr</strong>134,500 kWh × $0.13/kWh NV/AZ residential retail. 19.2 kW continuous at ~80% util.</div>
+              </div>
+              <div class="hbar-seg net has-callout" style="width: 1.1%;">
+                <div class="callout"><strong>Internet · $1K/yr</strong>Residential gigabit fiber at ~$80/mo. Span pays the host's bill directly.</div>
+              </div>
+              <div class="hbar-seg ops has-callout" style="width: 8.6%;">
+                <span>$7.5</span>
+                <div class="callout"><strong>Ops · $7.5K/yr (mid)</strong>Truck rolls + monitoring + insurance + software. Estimated $5–10K range, mid-band shown.</div>
+              </div>
+              <div class="hbar-seg capex has-callout" style="width: 70.1%;">
+                <span>$61K capex amort</span>
+                <div class="callout"><strong>Capex amort · $61K/yr</strong>$310K hardware lower bound ÷ 5-year useful life. Aggressive but standard for GPU depreciation under AI cycle pressure.</div>
+              </div>
+            </div>
+            <span class="hbar-total">$87K</span>
+          </div>
+
+          <div class="hbar-track">
+            <div class="hbar" style="width: 50.5%;">
+              <div class="hbar-seg power has-callout" style="width: 36.9%;">
+                <span>$41K power</span>
+                <div class="callout"><strong>Power · $41K/yr</strong>134,500 kWh × $0.30/kWh CA residential retail. Power alone consumes ~37% of the cost floor.</div>
+              </div>
+              <div class="hbar-seg net has-callout" style="width: 0.9%;">
+                <div class="callout"><strong>Internet · $1K/yr</strong>Same as pilot — residential gigabit pricing barely varies by state.</div>
+              </div>
+              <div class="hbar-seg ops has-callout" style="width: 7.2%;">
+                <span>$8</span>
+                <div class="callout"><strong>Ops · $8K/yr</strong>Slightly higher than NV/AZ for truck-roll cost in CA labor markets.</div>
+              </div>
+              <div class="hbar-seg capex has-callout" style="width: 55.0%;">
+                <span>$61K capex amort</span>
+                <div class="callout"><strong>Capex amort · $61K/yr</strong>Same hardware, same depreciation schedule. The variable that changed is power cost.</div>
+              </div>
+            </div>
+            <span class="hbar-total">$111K</span>
+          </div>
+
+          <div class="hbar-track">
+            <div class="hbar" style="width: 90.9%;">
+              <div class="hbar-seg revenue has-callout" style="width: 100%;">
+                <span>~$200K · target revenue per node / year</span>
+                <div class="callout"><strong>Back-solved from investor math</strong>Abe Yokell (Congruent Ventures) framed each node as ~$1M asset value (50K nodes ≈ 1 GW × $50B/GW Nvidia benchmark). Over 5 years with growth ≈ $200–250K/yr.</div>
+              </div>
+            </div>
+            <span class="hbar-total">$200K</span>
+          </div>
+
+          <div class="hbar-axis">
+            <span style="left: 0%;">$0</span>
+            <span style="left: 22.7%;">$50K</span>
+            <span style="left: 45.4%;">$100K</span>
+            <span style="left: 68.2%;">$150K</span>
+            <span style="left: 90.9%;">$200K</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="econ-legend">
+        <div class="econ-legend-item"><span class="econ-swatch" style="background: #1e3a66;"></span> Power</div>
+        <div class="econ-legend-item"><span class="econ-swatch" style="background: #274a7d;"></span> Internet</div>
+        <div class="econ-legend-item"><span class="econ-swatch" style="background: #345a90;"></span> Ops</div>
+        <div class="econ-legend-item"><span class="econ-swatch" style="background: #406aa0;"></span> Capex amort (5yr)</div>
+        <div class="econ-legend-item"><span class="econ-swatch" style="background: var(--success);"></span> Revenue target</div>
+      </div>
+      <p class="interact-hint">Hover any segment for the math · click to pin · vertical blue line = $150K minimum viable revenue</p>
+    </div>
+  </section>
+
+  <!-- 7: MOAT -->
+  <section class="slide" data-slide="7">
+    <div class="slide-inner">
+      <div class="section-tag">Strategic positioning</div>
+      <h2>The moat is a <span class="hl">combination</span>, not any single asset.</h2>
+      <div class="key-insight"><span>No single asset is a moat. The <strong>combination</strong> of installed base + builder channel + power-control IP holds for <strong>3–4 years</strong>. That's the window.</span></div>
+      <p class="story">Assume the economics clear. The next question is defensibility. <em>None of Span's assets is individually a moat.</em> The combination — <strong>five years of installed panels</strong>, a <strong>top-three homebuilder channel</strong>, and the regulatory work to get power-control authority on a residential panel — is reasonably hard to copy in under three or four years.</p>
+      <div class="moat-grid">
+        <div class="moat-row">
+          <div class="moat-asset">Pulte partnership</div>
+          <div class="def-bar med"><span class="def-bar-seg on"></span><span class="def-bar-seg on"></span><span class="def-bar-seg"></span></div>
+          <div class="moat-detail">Pulte can deploy with others; logo-strong but contractually unknown.</div>
+        </div>
+        <div class="moat-row">
+          <div class="moat-asset">Smart panel installed base</div>
+          <div class="def-bar high"><span class="def-bar-seg on"></span><span class="def-bar-seg on"></span><span class="def-bar-seg on"></span></div>
+          <div class="moat-detail">5+ years of installs; real switching cost for builders standardized on Span.</div>
+        </div>
+        <div class="moat-row">
+          <div class="moat-asset">Power-control IP & certification</div>
+          <div class="def-bar high"><span class="def-bar-seg on"></span><span class="def-bar-seg on"></span><span class="def-bar-seg on"></span></div>
+          <div class="moat-detail">Long process to UL-list and PUC-clear a panel with this authority.</div>
+        </div>
+        <div class="moat-row">
+          <div class="moat-asset">Orchestration software</div>
+          <div class="def-bar low"><span class="def-bar-seg on"></span><span class="def-bar-seg"></span><span class="def-bar-seg"></span></div>
+          <div class="moat-detail">Pure software; replicable by any well-funded competitor.</div>
+        </div>
+        <div class="moat-row">
+          <div class="moat-asset">Hardware design</div>
+          <div class="def-bar low"><span class="def-bar-seg on"></span><span class="def-bar-seg"></span><span class="def-bar-seg"></span></div>
+          <div class="moat-detail">Integration of commodity parts; no proprietary silicon.</div>
+        </div>
+        <div class="moat-row">
+          <div class="moat-asset">Tariff & regulatory relationships</div>
+          <div class="def-bar med"><span class="def-bar-seg on"></span><span class="def-bar-seg on"></span><span class="def-bar-seg"></span></div>
+          <div class="moat-detail">Slow to build, slow to copy.</div>
+        </div>
+        <div class="moat-row">
+          <div class="moat-asset">First-mover narrative</div>
+          <div class="def-bar low"><span class="def-bar-seg on"></span><span class="def-bar-seg"></span><span class="def-bar-seg"></span></div>
+          <div class="moat-detail">Decays as competitors enter.</div>
+        </div>
+      </div>
+      <p class="beat">Three to four years is the structural window. After that, defensibility depends on whether anchor contracts and tariff treatments lock in distribution.</p>
+    </div>
+  </section>
+
+  <!-- 8: COMPETITORS -->
+  <section class="slide" data-slide="8">
+    <div class="slide-inner">
+      <div class="section-tag">Competitive durability</div>
+      <h2>And there's <span class="hl">a queue forming.</span></h2>
+      <div class="key-insight"><span><strong>Telco edge</strong> is the most credible substitute. Span's bet: <strong>residential proximity and speed</strong> beat all three.</span></div>
+      <p class="story">Three structural competitors, each attacking the same underlying problem — <strong>AI compute is power-limited, not silicon-limited</strong> — from a different angle. <em>Telco edge is the most credible substitute. Crusoe Spark wins on density. Behind-the-meter-plus-flex has the capital.</em></p>
+      <div class="comp-cards">
+        <div class="comp-card">
+          <div class="comp-rank">01</div>
+          <div class="comp-shape">Telco edge</div>
+          <div class="comp-name">Verizon, AT&T, AWS Wavelength</div>
+          <div class="comp-desc">Existing power, fiber, security at thousands of cell towers and central offices. Same distributed shape.</div>
+          <div class="comp-wins">+ Operability & enterprise SLA</div>
+          <div class="comp-loses">− Residential last-mile latency</div>
+        </div>
+        <div class="comp-card">
+          <div class="comp-rank">02</div>
+          <div class="comp-shape">Modular & on-site power</div>
+          <div class="comp-name">Crusoe Spark + Edge Zones</div>
+          <div class="comp-desc">Factory-built modular DC with diverse power options. 3-month time-to-power per unit.</div>
+          <div class="comp-wins">+ Density, no residential friction</div>
+          <div class="comp-loses">− Needs commercial parcel</div>
+        </div>
+        <div class="comp-card">
+          <div class="comp-rank">03</div>
+          <div class="comp-shape">Behind-the-meter + flex</div>
+          <div class="comp-name">Bloom Energy + Emerald AI</div>
+          <div class="comp-desc">On-site fuel cells + grid-flex orchestration. Bypasses interconnection queues entirely.</div>
+          <div class="comp-wins">+ Capital available now ($5B Brookfield)</div>
+          <div class="comp-loses">− Higher capex per MW</div>
+        </div>
+      </div>
+      <p class="beat">If competition is one half of the story, risk is the other.</p>
+    </div>
+  </section>
+
+  <!-- 9: RISKS — press narrative vs. actual exposure -->
+  <section class="slide" data-slide="9">
+    <div class="slide-inner">
+      <div class="section-tag">Risk inventory</div>
+      <h2>The real risks <span class="hl">aren't the ones in the press.</span></h2>
+      <div class="key-insight"><span>Public commentary focuses on <strong>noise and neighbors</strong>, which are already managed at the spec. The risks that could actually <strong>kill the business</strong> — PUC tariffs, truck-roll scaling, anchor-tenant concentration, the orchestrator — get almost no airtime.</span></div>
+      <p class="story">Press narrative lives in one place. Span's actual exposure lives somewhere else. <em>Here's the gap, side by side.</em></p>
+
+      <div class="risk-compare">
+        <div class="risk-col risk-press">
+          <div class="risk-col-tag">What the press covers</div>
+          <div class="risk-col-h">Already managed</div>
+
+          <div class="risk-item">
+            <div class="risk-name">
+              <span class="risk-dot low"></span>
+              <span class="risk-label">Neighborhood noise</span>
+            </div>
+            <div class="risk-status">Solved at the spec — 60 dB, below most municipal nuisance limits.</div>
+          </div>
+
+          <div class="risk-item">
+            <div class="risk-name">
+              <span class="risk-dot low"></span>
+              <span class="risk-label">NIMBY / zoning fights</span>
+            </div>
+            <div class="risk-status">Sidestepped by new-construction siting through Pulte.</div>
+          </div>
+
+          <div class="risk-item">
+            <div class="risk-name">
+              <span class="risk-dot low"></span>
+              <span class="risk-label">Aesthetic objection</span>
+            </div>
+            <div class="risk-status">Pod sized like an HVAC condenser. Municipal-compliant.</div>
+          </div>
+
+          <div class="risk-item">
+            <div class="risk-name">
+              <span class="risk-dot low"></span>
+              <span class="risk-label">"Backyard data center" framing</span>
+            </div>
+            <div class="risk-status">A marketing problem, not an engineering one.</div>
+          </div>
+        </div>
+
+        <div class="risk-col risk-actual">
+          <div class="risk-col-tag">What actually threatens the business</div>
+          <div class="risk-col-h">Unsolved, load-bearing</div>
+
+          <div class="risk-item critical">
+            <div class="risk-name">
+              <span class="risk-dot critical"></span>
+              <span class="risk-label">PUC tariff denial</span>
+              <span class="risk-sev">Critical · Med-high</span>
+            </div>
+            <div class="risk-meta">No state has ruled on residential headroom resale. The first ruling — likely NV or AZ — sets the precedent every other state references.</div>
+          </div>
+
+          <div class="risk-item critical">
+            <div class="risk-name">
+              <span class="risk-dot critical"></span>
+              <span class="risk-label">Hyperscaler anchor walks</span>
+              <span class="risk-sev">Critical · Medium</span>
+            </div>
+            <div class="risk-meta">Single-customer concentration risk at scale. The whole revenue model leans on landing one anchor buyer at premium pricing.</div>
+          </div>
+
+          <div class="risk-item high">
+            <div class="risk-name">
+              <span class="risk-dot high"></span>
+              <span class="risk-label">Truck-roll cost scaling</span>
+              <span class="risk-sev">High · High</span>
+            </div>
+            <div class="risk-meta">Pure scaling math — gets worse linearly with fleet size. Mitigated only by hardware reliability holding up over multi-year deployment.</div>
+          </div>
+
+          <div class="risk-item high">
+            <div class="risk-name">
+              <span class="risk-dot high"></span>
+              <span class="risk-label">Orchestrator partial-failure cascade</span>
+              <span class="risk-sev">High · Medium</span>
+            </div>
+            <div class="risk-meta">The unverified piece from slide 4. No public detail on how the system handles many simultaneous host outages.</div>
+          </div>
+        </div>
+      </div>
+
+      <p class="beat">The left column manages itself. <strong>The right column is the watchlist for slide 13.</strong></p>
+    </div>
+  </section>
+
+  <!-- 10: ADJACENCIES — what Span could ship in 2027 (near-term margin levers) -->
+  <section class="slide" data-slide="10">
+    <div class="slide-inner">
+      <div class="section-tag">Adjacencies · part 1 of 2</div>
+      <h2>Things Span could ship <span class="hl">in 2027</span>.</h2>
+      <div class="key-insight"><span>Four moves that <strong>reuse the existing investment</strong> — installed panel base, hardware envelope, orchestration software. No new business needed; just orchestration and packaging changes.</span></div>
+      <p class="story">The first batch of adjacencies is the cheapest. The same platform Span is already running for XFRA can do <em>four other things</em> — selling demand response to utilities, packing more racks into a host site, capturing waste heat for hot water, and bundling its own risk into an insurance product.</p>
+      <div class="adj-grid">
+        <div class="adj-card adj-near">
+          <div class="adj-distance">Nearest term</div>
+          <div class="adj-title">Utility grid-services revenue</div>
+          <div class="adj-desc">Sell demand-response capacity to utilities alongside compute resale. The battery + panel + orchestration stack is already there. No incremental capex.</div>
+        </div>
+        <div class="adj-card adj-near">
+          <div class="adj-distance">Nearest term</div>
+          <div class="adj-title">Multi-rack site upgrade path</div>
+          <div class="adj-desc">2–4 racks per non-residential host unlocks tightly-coupled workloads — training, larger inference. Same enclosure design; bigger pad.</div>
+        </div>
+        <div class="adj-card">
+          <div class="adj-distance">Medium-term</div>
+          <div class="adj-title">Heat reuse for residential hot water</div>
+          <div class="adj-desc">12 kW IT load rejected as low-grade heat. In cold climates, 30–50% winter heating offset for hosts. Turns "free electricity" into "free electricity and free hot water."</div>
+        </div>
+        <div class="adj-card">
+          <div class="adj-distance">Margin lever</div>
+          <div class="adj-title">Insurance-as-a-product</div>
+          <div class="adj-desc">Glycol, cooling, and fire risk at residential sites creates a real bundled insurance product. 10–20% margin lift at fleet scale; also de-risks the host conversation.</div>
+        </div>
+      </div>
+      <p class="beat">All four reuse what's already built. Next: shifts that reach entirely different customers.</p>
+    </div>
+  </section>
+
+  <!-- 11: ADJACENCIES — strategic platform shifts (different buyers / geographies / businesses) -->
+  <section class="slide" data-slide="11">
+    <div class="slide-inner">
+      <div class="section-tag">Adjacencies · part 2 of 2</div>
+      <h2>Strategic shifts using <span class="hl">the same platform</span>.</h2>
+      <div class="key-insight"><span>Four shifts that reach <strong>different buyers, different geographies, different businesses</strong> — all reusing Span's existing engineering, panel IP, and hardware envelope.</span></div>
+      <p class="story">The second batch of adjacencies asks Span to reach beyond the residential-channel + hyperscaler-buyer model. Schools and civic buildings are a different buyer. The Northeast is a different market. The DOD is a different sales cycle. Telcos and retailers want the hardware without the service. <em>All four reuse the same engineering work.</em></p>
+      <div class="adj-grid">
+        <div class="adj-card">
+          <div class="adj-distance">Different buyer</div>
+          <div class="adj-title">Sovereign / institutional channel</div>
+          <div class="adj-desc">Schools, fire stations, hospitals, civic buildings. Host-as-customer model, not power-supplier. Sidesteps PUC risk entirely; lands government dollars.</div>
+        </div>
+        <div class="adj-card">
+          <div class="adj-distance">Different buyer</div>
+          <div class="adj-title">Federal / DOD edge inference</div>
+          <div class="adj-desc">On-base deployment skips PUC entirely. Sticky multi-year contracts, premium per-node revenue, different sales cycle than residential.</div>
+        </div>
+        <div class="adj-card">
+          <div class="adj-distance">Different geography</div>
+          <div class="adj-title">Northeast expansion + heat reuse</div>
+          <div class="adj-desc">High residential rates AND high heating costs. Pair XFRA with the heat-reuse adjacency and the rate-margin math becomes favorable. The Southwest pilot proves integration; the Northeast is where the economics get interesting.</div>
+        </div>
+        <div class="adj-card">
+          <div class="adj-distance">Different business</div>
+          <div class="adj-title">Hardware-as-a-service</div>
+          <div class="adj-desc">Sell the outdoor liquid-cooled enclosure as a product to telcos, retailers, and federal facilities — the Crusoe Spark play applied to Span's form factor.</div>
+        </div>
+      </div>
+      <p class="beat">Whatever the answer on XFRA itself, the platform underneath has surface area Span isn't yet using.</p>
+    </div>
+  </section>
+
+  <!-- 12: THREE QUESTIONS -->
+  <section class="slide" data-slide="12">
+    <div class="slide-inner">
+      <div class="section-tag">Overall assessment</div>
+      <h2>Strip everything else away.</h2>
+      <div class="key-insight"><span>Three questions decide it. <strong>None is answerable today.</strong> All three are answerable in the <strong>next 18 months</strong>.</span></div>
+      <p class="story">The bet comes down to <strong>three questions</strong>. <em>None of them is answerable from public information today.</em> All three are answerable within the next 18 months. <strong>Pilot data, the first PUC ruling, and the first hyperscaler contract</strong> will resolve the whole thing.</p>
+      <div class="three-q">
+        <div class="q-card">
+          <div class="q-num">01</div>
+          <div class="q-text">Does the orchestrator deliver hyperscaler-grade SLA across a residential fleet?</div>
+        </div>
+        <div class="q-card">
+          <div class="q-num">02</div>
+          <div class="q-text">Does at least one PUC, in at least one high-value market, approve a tariff that lets Span pay below retail for marginal kWh?</div>
+        </div>
+        <div class="q-card">
+          <div class="q-num">03</div>
+          <div class="q-text">Does at least one hyperscaler sign a multi-year anchor contract at edge-premium pricing?</div>
+        </div>
+      </div>
+      <p class="beat">A "yes" on all three makes XFRA a category-defining business with a 3–4 year window. A "no" on any one confines it to a profitable-but-bounded Southwest business — a real outcome, not the gigawatt ambition.</p>
+    </div>
+  </section>
+
+  <!-- 13: WATCHLIST -->
+  <section class="slide" data-slide="13">
+    <div class="slide-inner">
+      <div class="section-tag">What we still don't know</div>
+      <h2>Watchlist, ranked by <span class="hl">what would move the needle.</span></h2>
+      <div class="key-insight"><span>Watch <strong>tenant pricing</strong> and <strong>the first PUC ruling</strong>. Everything else is texture.</span></div>
+      <p class="story">If you're tracking this from the outside, this is what to watch. <em>The first two are decisive.</em> The rest become signal as the pilot reports out. The whole watchlist resolves <strong>between now and end of 2027</strong>.</p>
+      <div class="watchlist">
+        <div class="watch-item">
+          <div class="watch-num">1</div>
+          <div class="watch-text">First-tenant pricing and contract terms — who buys, how much, for how long, at what price.</div>
+          <div class="watch-impact">Decisive</div>
+        </div>
+        <div class="watch-item">
+          <div class="watch-num">2</div>
+          <div class="watch-text">First PUC ruling on XFRA-relevant tariff. Likely Nevada or Arizona; sets precedent.</div>
+          <div class="watch-impact">Decisive</div>
+        </div>
+        <div class="watch-item">
+          <div class="watch-num">3</div>
+          <div class="watch-text">Per-node operating cost from the pilot — truck-roll frequency, glycol events, failure rates.</div>
+          <div class="watch-impact">High</div>
+        </div>
+        <div class="watch-item">
+          <div class="watch-num">4</div>
+          <div class="watch-text">Orchestrator architecture and partial-failure behavior — public disclosure or independent audit.</div>
+          <div class="watch-impact">High</div>
+        </div>
+        <div class="watch-item">
+          <div class="watch-num">5</div>
+          <div class="watch-text">Host satisfaction and churn at month 12 of the pilot. Leading indicator for channel scale.</div>
+          <div class="watch-impact">High</div>
+        </div>
+        <div class="watch-item">
+          <div class="watch-num">6</div>
+          <div class="watch-text">Commercial XFRA spec and pricing (early 2027) — defines whether Span is residential-only.</div>
+          <div class="watch-impact">Medium</div>
+        </div>
+        <div class="watch-item">
+          <div class="watch-num">7</div>
+          <div class="watch-text">First major insurance carrier underwriting position on residential compute pods.</div>
+          <div class="watch-impact">Medium</div>
+        </div>
+        <div class="watch-item">
+          <div class="watch-num">8</div>
+          <div class="watch-text">Hyperscaler edge-strategy disclosures (AWS, Azure, Google). Could shrink addressable market.</div>
+          <div class="watch-impact">Medium</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14: CLOSING -->
+  <section class="slide" data-slide="14">
+    <div class="slide-inner">
+      <div class="section-tag">In closing</div>
+      <h2>The bet is reasonable. The binary risks are public.</h2>
+      <div class="closing-card">
+        <p>XFRA is a <strong>credible, well-staged attempt</strong> to convert a real structural inefficiency — residential grid underutilization — into a real economic asset: saleable AI inference capacity.</p>
+        <p>The <em>hardware works</em>, the integration is solvable, the pilot is sized to test the right thing. <strong>The thesis is not crazy.</strong></p>
+        <p>But the binary risks — <em>orchestrator SLA, PUC tariff outcomes, anchor-tenant pricing</em> — are concentrated in places Span <strong>has not yet pressure-tested in public</strong>. The next 18 months resolve most of the load-bearing uncertainty. <strong>Track the three questions on slide 12; everything else is detail.</strong></p>
+      </div>
+      <div class="source-list">
+        <a href="https://www.span.io/blog/span-announces-xfra-a-distributed-data-center-solution-to-close-the-speed-to-power-gap-for-ai-compute-demand">SPAN — XFRA press release (Apr 13, 2026)</a>
+        <a href="https://www.latitudemedia.com/news/span-to-launch-mini-ai-data-centers-for-distributed-at-home-compute/">Latitude Media — Can Span turn homes into AI inference hubs?</a>
+        <a href="https://pv-magazine-usa.com/2026/04/15/span-and-nvidia-to-develop-ai-data-centers-in-your-backyard-lowering-electric-bills/">pv-magazine USA — Span and Nvidia AI data centers in your backyard</a>
+        <a href="https://www.networkworld.com/article/4170966/startup-span-teams-with-nvidia-to-put-data-center-nodes-in-your-backyard.html">Network World — Startup SPAN teams with Nvidia</a>
+        <a href="https://datacenterrichness.substack.com/p/liquid-cooled-gpus-come-to-the-backyard">Data Center Richness — Liquid-Cooled GPUs Come to the Backyard</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15: NORTHWEST OHIO — section opener -->
+  <section class="slide" data-slide="15" data-section="Northwest Ohio · concept">
+    <div class="slide-inner">
+      <div class="section-tag">Northwest Ohio · concept</div>
+      <h2>A regional opportunity worth taking <span class="hl">seriously.</span></h2>
+      <div class="key-insight"><span>Northwest Ohio has the <strong>manufacturing base</strong>, the <strong>skilled workforce</strong>, and (with heat reuse) the <strong>climate profile</strong> to turn an XFRA-type product into a regional industrial story — not just a deployment site.</span></div>
+      <p class="story">Everything up to this point has been strict analysis. The next four slides shift mode — they ask <em>what an XFRA-style product could mean for Toledo and Northwest Ohio if we wanted to participate, not just observe.</em> Speculative, but concrete enough to act on.</p>
+      <p class="beat">Ahead: three regional advantages — we can <strong>build it</strong>, <strong>install it</strong>, and the use case <strong>fits us better</strong> — and then what a Toledo pilot might look like.</p>
+    </div>
+  </section>
+
+  <!-- 16: BUILD IT — manufacturing & PV supply chain (1 of 3) -->
+  <section class="slide" data-slide="16" data-section="Northwest Ohio · concept">
+    <div class="slide-inner">
+      <div class="section-tag">Northwest Ohio · concept · build (1 of 3)</div>
+      <h2>First — <span class="hl">we can build it.</span></h2>
+      <div class="key-insight"><span>The XFRA pod isn't exotic — it's <strong>HVAC-form-factor metalwork</strong> with liquid cooling and insulation. <strong>Every layer of that supply chain lives within 30 minutes of Toledo.</strong> Span ships pods from California; we could fabricate them here.</span></div>
+      <p class="story">Most analyses of XFRA treat the deployment region as a passive host. <em>Northwest Ohio's industrial base would change that relationship.</em> The same supply chain that built the auto industry and the glass industry can build outdoor compute enclosures.</p>
+      <div class="asset-grid">
+        <div class="asset-card featured">
+          <div class="asset-tag">Manufacturing</div>
+          <div class="asset-title">Outdoor enclosure supply chain</div>
+          <div class="asset-desc">The pod is steel-and-aluminum housing with insulation, liquid-cooling loops, and weatherproofing. Every layer has a regional supplier: <strong>Owens Corning</strong> (Toledo HQ — insulation, composites, glass-fiber reinforcement); <strong>Dana Incorporated</strong> (Maumee — thermal management, liquid-cooling expertise from decades of automotive driveline work); <em>regional metal fabrication</em> from the same shops that supply Stellantis Toledo Assembly; and <strong>NSG/Pilkington</strong> for any glass elements.</div>
+          <div class="asset-footer">Span ships pods from California. We could fabricate them here at lower cost and shorter lead time.</div>
+        </div>
+        <div class="asset-card featured">
+          <div class="asset-tag">Solar / PV adjacency</div>
+          <div class="asset-title">First Solar at Perrysburg</div>
+          <div class="asset-desc"><strong>North America's largest thin-film PV manufacturing facility</strong> sits 15 minutes south of Toledo. Recently expanded through a multi-billion-dollar investment, First Solar's Series 7 production keeps PV modules in the regional supply chain — not the global one. When XFRA pairs with behind-the-meter solar (the slide-10 optional add-on), the modules <em>don't need to cross an ocean</em> to reach a Toledo install.</div>
+          <div class="asset-footer">Solar pairing becomes a regional supply story, not a logistics problem.</div>
+        </div>
+      </div>
+      <p class="beat">Building the pod is step one. Next: installing and servicing it.</p>
+    </div>
+  </section>
+
+  <!-- 17: INSTALL IT — workforce & builder channel (2 of 3) -->
+  <section class="slide" data-slide="17" data-section="Northwest Ohio · concept">
+    <div class="slide-inner">
+      <div class="section-tag">Northwest Ohio · concept · install (2 of 3)</div>
+      <h2>Second — <span class="hl">we can install and service it.</span></h2>
+      <div class="key-insight"><span>Building the pod is one thing. Getting it into 50 homes and <strong>keeping it running for 5 years</strong> is another. Toledo's electrical trades and homebuilder presence make both faster than fly-in installs from California.</span></div>
+      <p class="story">A pilot is a logistics exercise as much as an engineering one. <em>The trades, the apprenticeships, and the homebuilder channel all exist here</em> — no fly-in crew required.</p>
+      <div class="asset-grid">
+        <div class="asset-card featured">
+          <div class="asset-tag">Workforce</div>
+          <div class="asset-title">Skilled trades pipeline</div>
+          <div class="asset-desc">Installing an XFRA pod needs three trades: <strong>electrical</strong> (200A service tie-in, panel work), <strong>HVAC</strong> (cooling loop, heat-pump rejection), and <strong>plumbing</strong> for the heat-reuse adjacency. <strong>IBEW Local 8</strong> has thousands of electricians in the Toledo area. Every neighborhood already has an HVAC tech who can work a heat pump. <strong>Owens Community College</strong> runs registered apprenticeships in all three trades. <strong>University of Toledo</strong> engineering produces the technical talent for orchestration and supervisory roles.</div>
+          <div class="asset-footer">No fly-in California crew needed. The trades are already here.</div>
+        </div>
+        <div class="asset-card featured">
+          <div class="asset-tag">Builder channel</div>
+          <div class="asset-title">Active homebuilder presence</div>
+          <div class="asset-desc">Span's pilot model depends on builder pre-installation — the panel, conduit, and pad get installed <em>before move-in</em>. Toledo metro has active operations from <strong>Pulte, NVR/Ryan, Drees</strong>, and regional builders. They're building in Sylvania, Maumee, Perrysburg, Monclova, Oregon, and Holland. Volume is much smaller than Phoenix or Las Vegas — maybe 200–500 new builds per major builder per year — <em>but the relationship-and-process side of the channel exists and works.</em></div>
+          <div class="asset-footer">Lower volume means slower ramp, but also lower ops risk and faster iteration cycles.</div>
+        </div>
+      </div>
+      <p class="beat">Build it, install it. Next: why the use case actually fits us better than the desert.</p>
+    </div>
+  </section>
+
+  <!-- 18: USE-CASE FIT — climate & latency (3 of 3) -->
+  <section class="slide" data-slide="18" data-section="Northwest Ohio · concept">
+    <div class="slide-inner">
+      <div class="section-tag">Northwest Ohio · concept · fit (3 of 3)</div>
+      <h2>Third — <span class="hl">the use case fits us better.</span></h2>
+      <div class="key-insight"><span>The Sun Belt pilot has cheap power but <strong>wastes the rejected heat</strong>. We have a colder climate AND a latency hub within reach of <strong>~30 million people</strong>. Two structural advantages the Sun Belt can't claim.</span></div>
+      <p class="story">The Sun Belt argument for XFRA is cheap power and new construction. <em>The Northwest Ohio argument is different — and arguably stronger</em>: heat that gets used instead of dumped, plus a population center that benefits from edge-inference latency.</p>
+      <div class="asset-grid">
+        <div class="asset-card featured">
+          <div class="asset-tag">Climate</div>
+          <div class="asset-title">Cold winters turn rejected heat into a feature</div>
+          <div class="asset-desc">A 12 kW IT load's rejected heat goes to waste in Phoenix — the cooling system just dumps it. In Toledo, that same heat becomes <strong>a real co-benefit</strong>. Captured into a pre-heat loop for the host's domestic water, it offsets natural-gas heating cost <strong>estimated $500–1,000/yr</strong> depending on home size and gas rates. <em>The host signs up for the heat, not just the bill credit.</em> The slide-10 adjacency that's optional for Span becomes our primary value prop.</div>
+          <div class="asset-footer">What's a thermal liability in Phoenix is a thermal asset in Toledo.</div>
+        </div>
+        <div class="asset-card featured">
+          <div class="asset-tag">Latency</div>
+          <div class="asset-title">We're 30 ms from ~30 million people</div>
+          <div class="asset-desc">Toledo sits at a Midwest crossroads — within ~30 ms RTT of Chicago, Detroit, Cleveland, Columbus, and Indianapolis. <strong>That's roughly 30 million people</strong> in the consumer-AI latency window for any inference workload that benefits from being close to end users — AR/VR, agentic chat, real-time recommendation, autonomous-vehicle inference. Span's Southwest pilot proximity argument works for the Sun Belt; <em>Toledo's argument works for the Great Lakes corridor.</em></div>
+          <div class="asset-footer">Edge inference for the Midwest doesn't need to live in Phoenix.</div>
+        </div>
+      </div>
+      <p class="beat">Build it, install it, use it. Final slide: what a Toledo pilot actually looks like.</p>
+    </div>
+  </section>
+
+  <!-- 19: TOLEDO PILOT — what it looks like -->
+  <section class="slide" data-slide="19" data-section="Northwest Ohio · concept">
+    <div class="slide-inner">
+      <div class="section-tag">Northwest Ohio · concept · what it looks like</div>
+      <h2>A Toledo pilot would <span class="hl">look different</span> — and that's the point.</h2>
+      <div class="key-insight"><span>50-home pilot in Sylvania, Maumee, or West Toledo. <strong>Enclosures built locally. Heat reuse as the primary host value.</strong> Different inputs, different math, different story — one that includes a regional manufacturing angle Span's Southwest pilot can't tell.</span></div>
+      <p class="story">Three differences from Span's Southwest pilot — and each one tilts in Toledo's favor.</p>
+      <div class="adj-grid">
+        <div class="adj-card adj-near">
+          <div class="adj-distance">Difference 1</div>
+          <div class="adj-title">Local manufacture instead of CA ship</div>
+          <div class="adj-desc">Outdoor enclosures fabricated from regional Owens Corning / Dana / metalwork supply chain. <strong>Cuts shipping cost, shortens lead times, creates a regional jobs story</strong> that local utilities and PUCs will reward in tariff conversations.</div>
+        </div>
+        <div class="adj-card adj-near">
+          <div class="adj-distance">Difference 2</div>
+          <div class="adj-title">Heat reuse as primary value</div>
+          <div class="adj-desc">A 12 kW IT load rejects heat year-round. In Toledo winters, capturing it pre-warms the host's domestic water and offsets natural-gas heating cost — <strong>estimated $500–1,000/yr</strong> depending on home size. Hosts sign up for the heat, not just the bill credit.</div>
+        </div>
+        <div class="adj-card adj-near">
+          <div class="adj-distance">Difference 3</div>
+          <div class="adj-title">Workforce-led install</div>
+          <div class="adj-desc">Builder partner + IBEW Local 8 electricians + HVAC trades + AEP Ohio coordination. <strong>Local trades install faster</strong> than Span's CA crew can fly out — and the work stays in the local economy, which makes the political conversation easier.</div>
+        </div>
+        <div class="adj-card">
+          <div class="adj-distance">Who's at the table</div>
+          <div class="adj-title">Anchor partners to validate</div>
+          <div class="adj-desc">First Solar (PV pairing). Pulte / NVR / Drees (builder channel). AEP Ohio or Toledo Edison (tariff conversation). University of Toledo PVIC (technical validation). Owens Community College (workforce pipeline). Regional Growth Partnership and TMACOG (economic-development cover).</div>
+        </div>
+      </div>
+      <p class="beat">This is concept, not commitment. <strong>Next step: a five-meeting roadshow</strong> — Pulte regional, AEP Ohio, First Solar BD, UToledo PVIC, and RGP — to see who'd put their name on a pilot.</p>
+    </div>
+  </section>
+
+</div>
+
+<div class="nav">
+  <button id="prev" aria-label="Previous slide">‹</button>
+  <div class="dots" id="dots"></div>
+  <button id="next" aria-label="Next slide">›</button>
+</div>
+
+<div class="kbd-hint"><kbd>←</kbd> <kbd>→</kbd> or <kbd>space</kbd> to navigate · <kbd>1–9</kbd> to jump · <kbd>esc</kbd> to unpin</div>
+
+<script>
+(function() {
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  const cur = document.getElementById('cur');
+  const tot = document.getElementById('tot');
+  const dotsEl = document.getElementById('dots');
+  const prev = document.getElementById('prev');
+  const next = document.getElementById('next');
+  let i = 0;
+
+  tot.textContent = total;
+
+  for (let n = 0; n < total; n++) {
+    const d = document.createElement('button');
+    d.className = 'dot' + (n === 0 ? ' active' : '');
+    d.setAttribute('aria-label', 'Slide ' + (n + 1));
+    d.addEventListener('click', (e) => { e.stopPropagation(); go(n); });
+    dotsEl.appendChild(d);
+  }
+  const dots = dotsEl.querySelectorAll('.dot');
+
+  function unpinAll() {
+    document.querySelectorAll('.has-callout.pinned').forEach(el => el.classList.remove('pinned'));
+  }
+
+  const brandEl = document.querySelector('.brand');
+  function go(n) {
+    if (n < 0 || n >= total) return;
+    unpinAll();
+    slides[i].classList.remove('active');
+    dots[i].classList.remove('active');
+    i = n;
+    slides[i].classList.add('active');
+    dots[i].classList.add('active');
+    cur.textContent = i + 1;
+    prev.disabled = i === 0;
+    next.disabled = i === total - 1;
+    slides[i].scrollTo(0, 0);
+    // Brand label tracks which section we're in
+    const section = slides[i].dataset.section || 'Strict analysis';
+    brandEl.innerHTML = 'SPAN <span>XFRA</span> · ' + section;
+  }
+
+  prev.addEventListener('click', (e) => { e.stopPropagation(); go(i - 1); });
+  next.addEventListener('click', (e) => { e.stopPropagation(); go(i + 1); });
+
+  // Pin behavior — click any .has-callout to pin its callout open
+  document.addEventListener('click', (e) => {
+    const target = e.target.closest('.has-callout');
+    if (target) {
+      e.stopPropagation();
+      const wasPinned = target.classList.contains('pinned');
+      // Only one pin at a time per slide for clarity
+      slides[i].querySelectorAll('.has-callout.pinned').forEach(el => {
+        if (el !== target) el.classList.remove('pinned');
+      });
+      target.classList.toggle('pinned', !wasPinned);
+    } else {
+      // Click outside any callout-bearing element unpins everything
+      unpinAll();
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      unpinAll();
+      return;
+    }
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+      e.preventDefault(); go(i + 1);
+    } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+      e.preventDefault(); go(i - 1);
+    } else if (e.key === 'Home') {
+      go(0);
+    } else if (e.key === 'End') {
+      go(total - 1);
+    } else if (/^[1-9]$/.test(e.key)) {
+      const n = parseInt(e.key, 10) - 1;
+      if (n < total) go(n);
+    }
+  });
+
+  // --- Slide 2 pathway (the 7-question story) ---
+  const questions = [
+    {
+      q: "Will the hardware work in the pilot?",
+      verdictClass: "v-yes",
+      verdictText: "Yes",
+      confidence: 3,
+      confLabel: "High",
+      reasoning: "Every component is <strong>mature shipping product</strong> — Dell PowerEdge chassis, Nvidia RTX PRO 6000 Blackwell, AMD EPYC, direct-to-chip liquid cooling. Integration is non-trivial but conventional. Of all the variables in the model, <strong>the hardware itself is the smallest source of risk.</strong>",
+      bridge: "Hardware that works on a bench still has to fit somewhere. The next question is whether a residential side yard can actually host it."
+    },
+    {
+      q: "Will the host-side power, cooling, and acoustic envelope hold?",
+      verdictClass: "v-mixed",
+      verdictText: "Probably",
+      confidence: 2,
+      confLabel: "Medium",
+      reasoning: "For a <strong>new-construction home on 200A service</strong> with a Span panel, the 19.2 kW continuous draw fits inside the envelope and the 60 dB acoustic is below most municipal nuisance ordinances. <strong>Older retrofit homes with 100–150A service are a different story.</strong> The pilot deliberately dodges that by going new-construction only.",
+      bridge: "Smart move. But it means the pilot's real test is delivery and logistics — not whether the market actually wants this."
+    },
+    {
+      q: "Will Span hit the Q3 2026 100-home pilot on schedule?",
+      verdictClass: "v-prob",
+      verdictText: "Probably yes",
+      confidence: 3,
+      confLabel: "Med-high",
+      reasoning: "Pulte produces new-construction inventory at well above 100 homes per quarter. The engagement is announced and concrete. <strong>Treat the pilot as a delivery problem, not a market-validation problem</strong> — the risk here is operational, not strategic.",
+      bridge: "Shipping the pilot proves you can build the pod. It does not prove the unit economics work. That's where it gets harder."
+    },
+    {
+      q: "Will the unit economics work at 1,000-node scale?",
+      verdictClass: "v-mixed",
+      verdictText: "Plausible",
+      confidence: 1,
+      confLabel: "Low-med",
+      reasoning: "In the Southwest pilot states, the per-node cost floor is around <strong>$87K</strong> — leaving margin for hyperscaler-tier compute pricing. But two cost curves haven't been observed yet: <strong>truck-roll frequency at fleet scale</strong>, and the operating overhead of running orchestration across a residential network. Both only show up at the 1,000-node order of magnitude.",
+      bridge: "Even if 1,000 nodes clear, the 80x jump to Span's stated ambition introduces variables that haven't yet been tested anywhere."
+    },
+    {
+      q: "Will the unit economics work at 80,000-node scale?",
+      verdictClass: "v-uncertain",
+      verdictText: "Unknown",
+      confidence: 1,
+      confLabel: "Low",
+      reasoning: "The 80,000-node target requires <strong>hyperscaler edge-premium pricing at volume</strong> AND <strong>PUC-approved tariff carve-outs</strong> in high-rate states. Neither is currently demonstrated. The math breaks in California-rate markets without a tariff fix; <strong>the politics are more constraining than the math.</strong>",
+      bridge: "Which brings us to the wild card — the regulator. Without favorable PUC treatment, the ambition gets confined to a handful of cheap-power states."
+    },
+    {
+      q: "Will PUCs and ratepayer advocates allow the model at scale?",
+      verdictClass: "v-uncertain",
+      verdictText: "Genuinely uncertain",
+      confidence: 1,
+      confLabel: "Low",
+      reasoning: "<strong>No state PUC has ruled</strong> on a residential headroom resale tariff. Ratepayer advocates are already pushing back in public commentary — framing XFRA as 'hyperscalers parking their load on residential ratepayers.' <strong>The first ruling — likely in Nevada or Arizona — sets the precedent</strong> every other state references.",
+      bridge: "And finally — the meta-question. Even if all the above resolve in Span's favor, is the position itself defensible against the competitors lining up?"
+    },
+    {
+      q: "Is XFRA structurally defensible against telco-edge and modular DC?",
+      verdictClass: "v-mixed",
+      verdictText: "Partially",
+      confidence: 2,
+      confLabel: "Low-med",
+      reasoning: "<strong>The residential channel is the moat AND the exposure simultaneously.</strong> What gives Span its speed advantage (homebuilder distribution + grid headroom) is the same thing that concentrates its political and operational risk. Defensibility is real for <strong>3–4 years</strong> on the panel installed base + builder channel + power-control IP. After that, durability depends on anchor contracts and tariff lock-in.",
+      bridge: "That's the whole picture. The pattern: high confidence on the engineering, declining confidence as you move outward into economics, politics, and time.",
+      final: true
+    }
+  ];
+
+  const focusEl = document.getElementById('q-focus');
+  const pathStops = document.querySelectorAll('#q-path .stop');
+  const qPrev = document.getElementById('q-prev');
+  const qNext = document.getElementById('q-next');
+  const qPos = document.getElementById('q-pos');
+  const qProgress = document.getElementById('q-progress');
+  let qIdx = 0;
+
+  function renderQuestion(idx) {
+    const q = questions[idx];
+    const confDots = Array.from({length: 3}, (_, j) =>
+      `<span class="conf-dot${j < q.confidence ? ' on' : ''}"></span>`
+    ).join('');
+    focusEl.innerHTML =
+      '<div class="focus-header">' +
+        '<div class="focus-q">' + q.q + '</div>' +
+        '<div class="verdict ' + q.verdictClass + '">' + q.verdictText + '</div>' +
+        '<div class="confidence">' + confDots + '<span class="conf-label">' + q.confLabel + '</span></div>' +
+      '</div>' +
+      '<p class="focus-body">' + q.reasoning + '</p>' +
+      '<div class="focus-bridge' + (q.final ? ' final' : '') + '">' +
+        '<strong>' + (q.final ? 'The takeaway →' : 'What this means →') + '</strong>' +
+        q.bridge +
+      '</div>';
+
+    pathStops.forEach((stop, j) => {
+      stop.classList.toggle('active', j === idx);
+      stop.classList.toggle('visited', j < idx);
+    });
+
+    qPos.textContent = (idx + 1) + ' of ' + questions.length;
+    qPrev.disabled = idx === 0;
+    qNext.disabled = idx === questions.length - 1;
+
+    // Progress bar fills proportionally to current step
+    const totalStops = questions.length;
+    const pct = totalStops > 1 ? (idx / (totalStops - 1)) * 100 : 0;
+    qProgress.style.width = 'calc((100% - 0px) * ' + (pct / 100) + ')';
+  }
+
+  qPrev.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (qIdx > 0) { qIdx--; renderQuestion(qIdx); }
+  });
+  qNext.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (qIdx < questions.length - 1) { qIdx++; renderQuestion(qIdx); }
+  });
+  pathStops.forEach((stop) => {
+    stop.addEventListener('click', (e) => {
+      e.stopPropagation();
+      qIdx = parseInt(stop.dataset.q, 10);
+      renderQuestion(qIdx);
+    });
+  });
+
+  renderQuestion(0);
+
+  // --- Slide 4 pathway (the 6 technical components) ---
+  const components = [
+    {
+      q: "Hardware integration",
+      verdictClass: "v-yes",
+      verdictText: "Low risk",
+      confidence: 3,
+      confLabel: "High",
+      reasoning: "Dell PowerEdge chassis + Nvidia RTX PRO 6000 Blackwell + AMD EPYC. <strong>Every part is shipping product.</strong> The outdoor enclosure is industrialized HVAC engineering. Integration is non-trivial but well within Dell's and Span's combined competence.",
+      bridge: "The box itself is solved. Next question: does it actually fit in a residential side yard?"
+    },
+    {
+      q: "Power envelope",
+      verdictClass: "v-mixed",
+      verdictText: "Low / high split",
+      confidence: 2,
+      confLabel: "Medium",
+      reasoning: "On a <strong>new-construction home with 200A service</strong> and a Span panel, the 19.2 kW continuous draw fits inside the envelope with margin. On <strong>older homes with 100–150A service</strong>, it doesn't — no headroom to give. The pilot avoids the harder case by going new-construction only.",
+      bridge: "Power works for the target population. Next question: can it sit there quietly?"
+    },
+    {
+      q: "Cooling and acoustic",
+      verdictClass: "v-prob",
+      verdictText: "Low-med risk",
+      confidence: 2,
+      confLabel: "Medium",
+      reasoning: "Direct-to-chip liquid cooling is now standard for high-density AI racks. A 3-ton heat-pump rejection loop is normal residential equipment. <strong>60 dB acoustic</strong> is below most municipal nuisance ordinances. The five-year maintenance picture on glycol loops at residential sites — leaks, biological fouling, freeze cycles — is the unknown. <strong>That's an insurance problem, not an engineering one.</strong>",
+      bridge: "The pod sits quietly. Next question: how does it talk to the world?"
+    },
+    {
+      q: "Networking",
+      verdictClass: "v-mixed",
+      verdictText: "Medium risk",
+      confidence: 2,
+      confLabel: "Medium",
+      reasoning: "<strong>1 Gbps fiber uplink</strong> is plenty for inference traffic in and out of one node. It is nowhere near enough for tight-coupling workloads — training, large KV-cache sharing across nodes. That matches Span's stated positioning: inference only. The bigger constraint is geographic: <strong>only ~30–40% of US homes have fiber pre-pull.</strong> National scale is gated by that.",
+      bridge: "Network handles what it's designed for. Now the load-bearing piece — everything else depends on it."
+    },
+    {
+      q: "Orchestration layer",
+      verdictClass: "v-no",
+      verdictText: "Med-high risk",
+      confidence: 1,
+      confLabel: "Low",
+      reasoning: "<strong>This is the unknown.</strong> Span has not published anything about how workloads get routed, how partial failures cascade, what happens when 200 nodes simultaneously lose internet, or how buyer SLAs translate into orchestrator policy. It's the most novel piece of the entire system and the least visible. <strong>Until pilot data lands or Span publishes architecture, this is assertion, not evidence.</strong>",
+      bridge: "Everything depends on this one piece. Final question: will the pilot — built on all the above — actually ship on time?"
+    },
+    {
+      q: "Pilot deliverability (Q3 2026, 100 homes)",
+      verdictClass: "v-yes",
+      verdictText: "High confidence",
+      confidence: 3,
+      confLabel: "High",
+      reasoning: "Pulte produces new-construction inventory well above 100 homes per quarter in the Southwest. Span has the panels, the relationship, and a defined pilot scope. <strong>The pilot will ship on time.</strong> But shipping it only tests integration. The unit economics and the orchestrator only get pressure-tested at the next order of magnitude.",
+      bridge: "Five green-and-amber stops, one red stop, one solid finish. The integration is solvable. The orchestration layer is the unknown. <strong>Whether the engineering holds isn't the same question as whether the economics work</strong> — that's the next chapter.",
+      final: true
+    }
+  ];
+
+  const cFocusEl = document.getElementById('c-focus');
+  const cPathStops = document.querySelectorAll('#c-path .stop');
+  const cPrev = document.getElementById('c-prev');
+  const cNext = document.getElementById('c-next');
+  const cPos = document.getElementById('c-pos');
+  const cProgress = document.getElementById('c-progress');
+  let cIdx = 0;
+
+  function renderComponent(idx) {
+    const item = components[idx];
+    const confDots = Array.from({length: 3}, (_, j) =>
+      '<span class="conf-dot' + (j < item.confidence ? ' on' : '') + '"></span>'
+    ).join('');
+    cFocusEl.innerHTML =
+      '<div class="focus-header">' +
+        '<div class="focus-q">' + item.q + '</div>' +
+        '<div class="verdict ' + item.verdictClass + '">' + item.verdictText + '</div>' +
+        '<div class="confidence">' + confDots + '<span class="conf-label">' + item.confLabel + '</span></div>' +
+      '</div>' +
+      '<p class="focus-body">' + item.reasoning + '</p>' +
+      '<div class="focus-bridge' + (item.final ? ' final' : '') + '">' +
+        '<strong>' + (item.final ? 'The takeaway →' : 'Next →') + '</strong>' +
+        item.bridge +
+      '</div>';
+
+    cPathStops.forEach((stop, j) => {
+      stop.classList.toggle('active', j === idx);
+      stop.classList.toggle('visited', j < idx);
+    });
+
+    cPos.textContent = (idx + 1) + ' of ' + components.length;
+    cPrev.disabled = idx === 0;
+    cNext.disabled = idx === components.length - 1;
+
+    const pct = components.length > 1 ? (idx / (components.length - 1)) * 100 : 0;
+    cProgress.style.width = 'calc((100% - 0px) * ' + (pct / 100) + ')';
+  }
+
+  cPrev.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (cIdx > 0) { cIdx--; renderComponent(cIdx); }
+  });
+  cNext.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (cIdx < components.length - 1) { cIdx++; renderComponent(cIdx); }
+  });
+  cPathStops.forEach((stop) => {
+    stop.addEventListener('click', (e) => {
+      e.stopPropagation();
+      cIdx = parseInt(stop.dataset.q, 10);
+      renderComponent(cIdx);
+    });
+  });
+
+  renderComponent(0);
+
+  go(0);
+})();
+</script>
+
+</body>
+</html>
