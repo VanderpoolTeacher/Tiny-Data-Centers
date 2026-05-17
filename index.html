@@ -2135,7 +2135,7 @@
   <button id="next" aria-label="Next slide">›</button>
 </div>
 
-<div class="kbd-hint"><kbd>←</kbd> <kbd>→</kbd> or <kbd>space</kbd> to navigate · <kbd>esc</kbd> to unpin</div>
+<div class="kbd-hint"><kbd>←</kbd> <kbd>→</kbd> navigate · <kbd>x</kbd> open NW Ohio revenue analysis · <kbd>esc</kbd> unpin</div>
 
 <script>
 (function() {
@@ -2200,6 +2200,10 @@
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       unpinAll();
+      return;
+    }
+    if (e.key === 'x' || e.key === 'X') {
+      window.location.href = 'analysis.html';
       return;
     }
     if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
